@@ -59,7 +59,7 @@ install_executor() {
 
     # Step 2: Get latest release version
     print_step "2" "Fetching latest version..."
-    TAG=$(curl -s https://api.github.com/repos/t3rn/executor-release/releases/latest | grep -Po '"tag_name": "\K.*?(?=")')
+    TAG="v0.61.0"
     echo -e "${GREEN}Latest version: $TAG${NC}"
 
     # Step 3: Download and extract release
@@ -72,7 +72,7 @@ install_executor() {
     print_step "4" "Creating configuration file..."
     # Create environment file with RPC endpoints
     sudo bash -c "cat > $ENV_FILE" <<EOL
-RPC_ENDPOINTS="{\"l2rn\": [\"https://b2n.rpc.caldera.xyz/http\"], \"arbt\": [\"https://arbitrum-sepolia.drpc.org\", \"https://sepolia-rollup.arbitrum.io/rpc\"], \"bast\": [\"https://base-sepolia-rpc.publicnode.com\", \"https://base-sepolia.drpc.org\"], \"opst\": [\"https://sepolia.optimism.io\", \"https://optimism-sepolia.drpc.org\"], \"unit\": [\"https://unichain-sepolia.drpc.org\", \"https://sepolia.unichain.org\"], \"blst\": [\"https://sepolia.blast.io\"]}"
+RPC_ENDPOINTS="{\"l2rn\": [\"https://b2n.rpc.caldera.xyz/http\"], \"arbt\": [\"https://arbitrum-sepolia.drpc.org\", \"https://sepolia-rollup.arbitrum.io/rpc\"], \"bast\": [\"https://base-sepolia-rpc.p[...]
 EOL
 
     # Step 5: Set proper permissions
