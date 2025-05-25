@@ -26,7 +26,7 @@ const logger = {
   banner: () => {
     console.log(`${colors.cyan}${colors.bold}`);
     console.log('-------------------------------------------------');
-    console.log(' Pharos Testnet Multi Bot - Cryptodai3');
+    console.log(' Pharos Bot Tesnet - Zonaairdrop');
     console.log('-------------------------------------------------');
     console.log(`${colors.reset}\n`);
   },
