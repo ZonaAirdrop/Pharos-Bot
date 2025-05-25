@@ -26,7 +26,7 @@ const logger = {
   banner: () => {
     console.log(`${colors.cyan}${colors.bold}`);
     console.log('-------------------------------------------------');
-    console.log(' Pharos Bot - Zonaairdrop');
+    console.log(' Pharos Testnet Multi Bot - Cryptodai3');
     console.log('-------------------------------------------------');
     console.log(`${colors.reset}\n`);
   },
@@ -559,8 +559,8 @@ const performCheckIn = async (wallet, proxy = null) => {
     };
 
     logger.loading('Sending login request...');
-const loginResponse = await axios(axiosConfig);
-const loginData = loginResponse.data;
+    const loginResponse = await axios(axiosConfig);
+    const loginData = loginResponse.data;
 
     if (loginData.code !== 0 || !loginData.data.jwt) {
       logger.error(`Login failed: ${loginData.msg || 'Unknown error'}`);
