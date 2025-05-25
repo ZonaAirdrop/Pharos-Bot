@@ -21,7 +21,8 @@
 ````markdown
 git clone https://github.com/ZonaAirdrop/Pharos-Bot.git
 ````
-````cd Pharos-Bot
+````
+cd Pharos-Bot
 ````
 
 # 1. Create a `.env` file:
