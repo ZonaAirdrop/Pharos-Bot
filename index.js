@@ -559,8 +559,8 @@ const performCheckIn = async (wallet, proxy = null) => {
     };
 
     logger.loading('Sending login request...');
-    const loginResponse = await axios(axiosConfig);
-    const loginData = loginResponse.data;
+const loginResponse = await axios(axiosConfig);
+const loginData = loginResponse.data;
 
     if (loginData.code !== 0 || !loginData.data.jwt) {
       logger.error(`Login failed: ${loginData.msg || 'Unknown error'}`);
