@@ -1,6 +1,6 @@
 # PHAROS BOT TESNET 
 
- 📋 # Features
+      📋 Features
  
 🚀 Automated. Swaps
 
