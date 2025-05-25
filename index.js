@@ -559,4 +559,204 @@ const performCheckIn = async (wallet, proxy = null) => {
     };
 
     logger.loading('Sending login request...');
-    const loginResponse = await axios(axio
+    const loginResponse = await axios(axiosConfig);
+    const loginData = loginResponse.data;
+
+    if (loginData.code !== 0 || !loginData.data.jwt) {
+      logger.error(`Login failed: ${loginData.msg || 'Unknown error'}`);
+      return null;
+    }
+
+    const jwt = loginData.data.jwt;
+    logger.success(`Login successful, JWT: ${jwt}`);
+
+    const checkInUrl = `https://api.pharosnetwork.xyz/sign/in?address=${wallet.address}`;
+    const checkInHeaders = {
+      ...headers,
+      authorization: `Bearer ${jwt}`,
+    };
+
+    logger.loading('Sending check-in request...');
+    const checkInResponse = await axios({
+      method: 'post',
+      url: checkInUrl,
+      headers: checkInHeaders,
+      httpsAgent: proxy ? new HttpsProxyAgent(proxy) : null,
+    });
+    const checkInData = checkInResponse.data;
+
+    if (checkInData.code === 0) {
+      logger.success(`Check-in successful for ${wallet.address}`);
+      return jwt;
+    } else {
+      logger.warn(`Check-in failed, possibly already checked in: ${checkInData.msg || 'Unknown error'}`);
+      return jwt;
+    }
+  } catch (error) {
+    logger.error(`Check-in failed for ${wallet.address}: ${error.message}`);
+    return null;
+  }
+};
+
+const addLiquidity = async (wallet, provider, index) => {
+  try {
+    const pair = lpOptions[Math.floor(Math.random() * lpOptions.length)];
+    const amount0 = pair.amount0;
+    const amount1 = pair.amount1;
+    logger.step(
+      `Preparing Liquidity Add ${index + 1}: ${pair.token0}/${pair.token1} (${amount0} ${pair.token0}, ${amount1} ${pair.token1})`
+    );
+
+    const decimals0 = tokenDecimals[pair.token0];
+    const amount0Wei = ethers.parseUnits(amount0.toString(), decimals0);
+    if (!(await checkBalanceAndApproval(wallet, tokens[pair.token0], amount0, decimals0, tokens.POSITION_MANAGER))) {
+      return;
+    }
+
+    const decimals1 = tokenDecimals[pair.token1];
+    const amount1Wei = ethers.parseUnits(amount1.toString(), decimals1);
+    if (!(await checkBalanceAndApproval(wallet, tokens[pair.token1], amount1, decimals1, tokens.POSITION_MANAGER))) {
+      return;
+    }
+
+    const positionManager = new ethers.Contract(tokens.POSITION_MANAGER, positionManagerAbi, wallet);
+
+    const deadline = Math.floor(Date.now() / 1000) + 600; 
+    const tickLower = -60000; 
+    const tickUpper = 60000;
+
+    const mintParams = {
+      token0: tokens[pair.token0],
+      token1: tokens[pair.token1],
+      fee: pair.fee,
+      tickLower,
+      tickUpper,
+      amount0Desired: amount0Wei,
+      amount1Desired: amount1Wei,
+      amount0Min: 0,
+      amount1Min: 0,
+      recipient: wallet.address,
+      deadline,
+    };
+
+    let estimatedGas;
+    try {
+      estimatedGas = await positionManager.mint.estimateGas(mintParams, { from: wallet.address });
+    } catch (error) {
+      logger.error(`Gas estimation failed for LP ${index + 1}: ${error.message}`);
+      return;
+    }
+
+    const feeData = await provider.getFeeData();
+    const gasPrice = feeData.gasPrice || ethers.parseUnits('1', 'gwei');
+
+    const tx = await positionManager.mint(mintParams, {
+      gasLimit: Math.ceil(Number(estimatedGas) * 1.2),
+      gasPrice,
+      maxFeePerGas: feeData.maxFeePerGas || undefined,
+      maxPriorityFeePerGas: feeData.maxPriorityFeePerGas || undefined,
+    });
+
+    logger.loading(`Liquidity Add ${index + 1} sent, waiting for confirmation...`);
+    const receipt = await tx.wait();
+    logger.success(`Liquidity Add ${index + 1} completed: ${receipt.hash}`);
+    logger.step(`Explorer: https://testnet.pharosscan.xyz/tx/${receipt.hash}`);
+  } catch (error) {
+    logger.error(`Liquidity Add ${index + 1} failed: ${error.message}`);
+    if (error.transaction) {
+      logger.error(`Transaction details: ${JSON.stringify(error.transaction, null, 2)}`);
+    }
+    if (error.receipt) {
+      logger.error(`Receipt: ${JSON.stringify(error.receipt, null, 2)}`);
+    }
+  }
+};
+
+const countdown = async () => {
+  const totalSeconds = 30 * 60;
+  logger.info('Starting 30-minute countdown...');
+
+  for (let seconds = totalSeconds; seconds >= 0; seconds--) {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    process.stdout.write(`\r${colors.cyan}Time remaining: ${minutes}m ${secs}s${colors.reset} `);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  process.stdout.write('\rCountdown complete! Restarting process...\n');
+};
+
+const main = async () => {
+  logger.banner();
+
+  const proxies = loadProxies();
+  const privateKeys = [process.env.PRIVATE_KEY_1, process.env.PRIVATE_KEY_2].filter(pk => pk);
+  if (!privateKeys.length) {
+    logger.error('No private keys found in .env');
+    return;
+  }
+
+  const numTransfers = 10; 
+  const numWraps = 10; 
+  const numSwaps = 10; 
+  const numLPs = 10; 
+
+  while (true) {
+    for (const privateKey of privateKeys) {
+      const proxy = proxies.length ? getRandomProxy(proxies) : null;
+      const provider = setupProvider(proxy);
+      const wallet = new ethers.Wallet(privateKey, provider);
+
+      logger.wallet(`Using wallet: ${wallet.address}`);
+
+      await claimFaucet(wallet, proxy);
+
+      const jwt = await performCheckIn(wallet, proxy);
+      if (jwt) {
+        await getUserInfo(wallet, proxy, jwt);
+      } else {
+        logger.error('Skipping user info fetch due to failed check-in');
+      }
+
+      console.log(`\n${colors.cyan}------------------------${colors.reset}`);
+      console.log(`${colors.cyan}TRANSFERS${colors.reset}`);
+      console.log(`${colors.cyan}------------------------${colors.reset}`);
+      for (let i = 0; i < numTransfers; i++) {
+        await transferPHRS(wallet, provider, i);
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
+      }
+
+      console.log(`\n${colors.cyan}------------------------${colors.reset}`);
+      console.log(`${colors.cyan}WRAP${colors.reset}`);
+      console.log(`${colors.cyan}------------------------${colors.reset}`);
+      for (let i = 0; i < numWraps; i++) {
+        await wrapPHRS(wallet, provider, i);
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
+      }
+
+      console.log(`\n${colors.cyan}------------------------${colors.reset}`);
+      console.log(`${colors.cyan}SWAP${colors.reset}`);
+      console.log(`${colors.cyan}------------------------${colors.reset}`);
+      for (let i = 0; i < numSwaps; i++) {
+        await performSwap(wallet, provider, i);
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
+      }
+
+      console.log(`\n${colors.cyan}------------------------${colors.reset}`);
+      console.log(`${colors.cyan}ADD LP${colors.reset}`);
+      console.log(`${colors.cyan}------------------------${colors.reset}`);
+      for (let i = 0; i < numLPs; i++) {
+        await addLiquidity(wallet, provider, i);
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
+      }
+    }
+
+    logger.success('All actions completed for all wallets!');
+
+    await countdown();
+  }
+};
+
+main().catch(error => {
+  logger.error(`Bot failed: ${error.message}`);
+  process.exit(1);
+});
