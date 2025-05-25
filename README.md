@@ -1,1 +1,1 @@
-soon
+#PHAROS BOT TESNET#
