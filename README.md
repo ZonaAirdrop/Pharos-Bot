@@ -1,6 +1,6 @@
 # PHAROS BOT TESNET 
 
- 📋 Features
+ 📋 # Features
  
 🚀 Automated. Swaps
 
@@ -63,7 +63,7 @@ http://user:pass@ip:port
 socks5://user:pass@ip:port
 ```
 
-# Run Bot Stasrt 
+# Run Bot Start
 
 ````
 npm install
