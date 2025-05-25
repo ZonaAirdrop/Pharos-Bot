@@ -3,11 +3,17 @@
  📋 Features
  
 🚀 Automated. Swaps
+
 🚀 Automated. Transfer 
+
 🚀 Automated. Claim Faucet 
+
 🚀 Automated Daily Check-in
+
 🚀 Multi-Wallet Support
+
 🚀 Proxy Support
+
 🚀 Support. VPS & Termux 
 
  # Installation
@@ -35,6 +41,6 @@ socks5://user:pass@ip:port
 
 ````
 npm install
-   node index.js
+node index.js
    ````
 
