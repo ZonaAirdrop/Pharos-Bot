@@ -21,11 +21,13 @@
 ````markdown
 git clone https://github.com/ZonaAirdrop/Pharos-Bot.git
 ````
-````cd Pharos-Bot````
+````cd Pharos-Bot
+````
+
 # 1. Create a `.env` file:
 ```env
-PRIVATE_KEY_1=your_first_private_key_here
-PRIVATE_KEY_2=your_second_private_key_here
+PRIVATE_KEY_1=0x22xxx
+PRIVATE_KEY_2=0x327xxx
 # Add more if needed
 ````
 (Optional) Create `proxies.txt`:
@@ -43,6 +45,8 @@ socks5://user:pass@ip:port
 npm install
 node index.js
    ````
+
+⚠️Notes 
 
 - ONLY use testnet wallets  
 - NEVER paste mainnet private keys  
