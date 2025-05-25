@@ -46,7 +46,9 @@ socks5://user:pass@ip:port
 npm install
 node index.js
    ````
-# Check thx PharosScann https://testnet.pharosscan.xyz/address/
+# Check thx PharosScann 
+
+https://testnet.pharosscan.xyz/address/
 
 ⚠️Notes 
 
