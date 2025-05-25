@@ -11,3 +11,5 @@
 🚀 Support. VPS & Termux 
 
  # Installation
+
+````git clone https://github.com/ZonaAirdrop/Pharos-Bot.git```
