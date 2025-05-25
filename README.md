@@ -16,6 +16,29 @@
 
 🚀 Support. VPS & Termux 
 
+# Create Screen for vps 
+Install screen 
+
+````
+sudo apt update
+sudo apt install git scree
+n
+````
+# Create Screen 
+
+````
+screen -S pharosbot
+````
+Once the bot is running, press:
+
+Ctrl + A then D to exit the screen and keep the bot running
+
+Back to Screen Anytime
+
+````
+screen -r pharosbot
+````
+
  # Installation
 
 ````markdown
