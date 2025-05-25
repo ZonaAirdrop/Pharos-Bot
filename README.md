@@ -12,4 +12,29 @@
 
  # Installation
 
-````git clone https://github.com/ZonaAirdrop/Pharos-Bot.git```
+````markdown
+git clone https://github.com/ZonaAirdrop/Pharos-Bot.git
+````
+````cd Pharos-Bot````
+# 1. Create a `.env` file:
+```env
+PRIVATE_KEY_1=your_first_private_key_here
+PRIVATE_KEY_2=your_second_private_key_here
+# Add more if needed
+````
+(Optional) Create `proxies.txt`:
+
+Each proxy must be on a new line:
+
+```
+http://user:pass@ip:port
+socks5://user:pass@ip:port
+```
+
+# Run Bot Stasrt 
+
+````
+npm install
+   node index.js
+   ````
+
