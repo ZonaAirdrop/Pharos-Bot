@@ -25,7 +25,7 @@ git clone https://github.com/ZonaAirdrop/Pharos-Bot.git
 cd Pharos-Bot
 ````
 
-# 1. Create a `.env` file:
+# 1. Create a `.env` file: example nanao .env
 ```env
 PRIVATE_KEY_1=0x22xxx
 PRIVATE_KEY_2=0x327xxx
