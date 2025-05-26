@@ -346,7 +346,7 @@ const performSwap = async (wallet, provider, index) => {
 
 const transferPHRS = async (wallet, provider, index) => {
   try {
-    const amount = 0.01;
+    const amount = 0.001;
     const randomWallet = ethers.Wallet.createRandom();
     const toAddress = randomWallet.address;
     logger.step(`Preparing PHRS transfer ${index + 1}: ${amount} PHRS to ${toAddress}`);
@@ -695,10 +695,10 @@ const main = async () => {
     return;
   }
 
-  const numTransfers = 20; 
-  const numWraps = 20; 
-  const numSwaps = 20; 
-  const numLPs = 20; 
+  const numTransfers = 13; 
+  const numWraps = 15; 
+  const numSwaps = 17; 
+  const numLPs = 14; 
 
   while (true) {
     for (const privateKey of privateKeys) {
