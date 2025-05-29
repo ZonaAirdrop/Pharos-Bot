@@ -387,8 +387,8 @@ const transferPHRS = async (wallet, provider, index) => {
 
 const wrapPHRS = async (wallet, provider, index) => {
   try {
-    const minAmount = 0.001;
-    const maxAmount = 0.002;
+    const minAmount = 0.011;
+    const maxAmount = 0.021;
     const amount = minAmount + Math.random() * (maxAmount - minAmount);
     const amountWei = ethers.parseEther(amount.toFixed(6).toString());
     logger.step(`Preparing wrap PHRS ${index + 1}: ${amount.toFixed(6)} PHRS to WPHRS`);
@@ -673,8 +673,8 @@ const addLiquidity = async (wallet, provider, index) => {
 };
 
 const countdown = async () => {
-  const totalSeconds = 5 * 10;
-  logger.info('Starting 5-minute countdown...');
+  const totalSeconds = 60 * 120;
+  logger.info('Starting 60-minute countdown...');
 
   for (let seconds = totalSeconds; seconds >= 0; seconds--) {
     const minutes = Math.floor(seconds / 60);
