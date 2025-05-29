@@ -673,8 +673,8 @@ const addLiquidity = async (wallet, provider, index) => {
 };
 
 const countdown = async () => {
-  const totalSeconds = 30 * 60;
-  logger.info('Starting 30-minute countdown...');
+  const totalSeconds = 5 * 10;
+  logger.info('Starting 5-minute countdown...');
 
   for (let seconds = totalSeconds; seconds >= 0; seconds--) {
     const minutes = Math.floor(seconds / 60);
@@ -695,10 +695,10 @@ const main = async () => {
     return;
   }
 
-  const numTransfers = 13; 
-  const numWraps = 15; 
-  const numSwaps = 17; 
-  const numLPs = 14; 
+  const numTransfers = 8; 
+  const numWraps = 7; 
+  const numSwaps = 6; 
+  const numLPs = 7; 
 
   while (true) {
     for (const privateKey of privateKeys) {
