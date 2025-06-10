@@ -80,7 +80,7 @@ npm install ethers@latest dotenv prompt-sync@latest
 # Run Bot Mint 
 
 ````
-gotchipus.js
+node gotchipus.js
 ````
 `For push Task use Command`
 
