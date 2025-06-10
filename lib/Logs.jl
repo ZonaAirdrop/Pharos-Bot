@@ -225,7 +225,7 @@ gif(anim, "game_of_life.gif", fps=10)
 #= 
   Mini Data Analysis Project in Julia
   Dataset: Mock Sales Data
-  By: Kazuha’s Evil Twin
+  By: zonaairdrop
 =#
 
 using CSV
@@ -355,7 +355,7 @@ cli()
 #= 
   Mini Data Analysis Project in Julia
   Dataset: Mock Sales Data
-  By: Kazuha’s Evil Twin
+  By: zonaairdrop
 =#
 
 using CSV
@@ -485,7 +485,7 @@ cli()
 #= 
   Mini Data Analysis Project in Julia
   Dataset: Mock Sales Data
-  By: Kazuha’s Evil Twin
+  By: zonaairdrop
 =#
 
 using CSV
@@ -652,7 +652,7 @@ gif(anim, "game_of_life.gif", fps=10)
 #= 
   Mini Data Analysis Project in Julia
   Dataset: Mock Sales Data
-  By: Kazuha’s Evil Twin
+  By: zonaairdrop
 =#
 
 using CSV
