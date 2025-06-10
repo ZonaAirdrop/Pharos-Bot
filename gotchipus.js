@@ -22,7 +22,7 @@ const logger = {
   banner: () => {
     console.log(`${colors.cyan}${colors.bold}`);
     console.log(`---------------------------------------------`);
-    console.log(`  Gotchipus Auto Mint Bot - by zonaairdrop `);
+    console.log(`  Pharos Auto Mint Bot - by zonaairdrop `);
     console.log(`---------------------------------------------${colors.reset}`);
     console.log();
   }
