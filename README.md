@@ -9,6 +9,8 @@
 🚀 Automated. Claim Faucet 
 
 🚀 Automated Daily Check-in
+ 
+🚀 Auto Mint NFT 
 
 🚀 Multi-Wallet Support
 
@@ -69,6 +71,28 @@ socks5://user:pass@ip:port
 npm install
 node index.js
    ````
+# Command For Mint Nft 
+
+````
+git pull
+npm install ethers@latest dotenv prompt-sync@latest
+````
+# Run Bot Mint 
+
+````
+gotchipus.js
+````
+`For push Task use Command`
+
+````
+node index.js
+````
+`For Mint Bot Use Command`
+
+````
+gotchipus.js
+````
+
 # Check thx PharosScann 
 
 https://testnet.pharosscan.xyz/address/
