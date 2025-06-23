@@ -64,8 +64,7 @@ cd Pharos-Bot
 ````
 pip install -r requirements.txt
 ````
-#  .Create accounts.txt `nano accounts.txt`
-
+# accounts.txt `nano accounts.txt`
 ````
 your_private_key_1
 your_private_key_2
