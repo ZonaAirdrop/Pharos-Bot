@@ -60,11 +60,9 @@ git clone https://github.com/ZonaAirdrop/Pharos-Bot.git
 cd Pharos-Bot
 ````
 
-# 1. Create a `.env` file: example nanao .env
-```env
-PRIVATE_KEY_1=0x22xxx
-PRIVATE_KEY_2=0x327xxx
-# Add more if needed
+# 1.Install Dependencies
+````
+pip install -r requirements.txt
 ````
 (Optional) Create `proxies.txt`:
 
