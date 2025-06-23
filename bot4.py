@@ -47,13 +47,11 @@ class Brokex:
 
     def welcome(self):
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
-        print(Fore.GREEN + Style.BRIGHT + "    ⚡ Pharos Testnet Automation BOT  ⚡")
+        print(Fore.GREEN + Style.BRIGHT + "    ⚡ Pharos Testnet Brokex Bot")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
-        print(Fore.YELLOW + Style.BRIGHT + "    🧠 Project    : Brokex - Automation Bot")
-        print(Fore.YELLOW + Style.BRIGHT + "    🧑‍💻 Author     : YetiDAO")
-        print(Fore.YELLOW + Style.BRIGHT + "    🌐 Status     : Running & Monitoring...")
+        print(Fore.YELLOW + Style.BRIGHT + "    Team    : zonaairdrop")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
-        print(Fore.MAGENTA + Style.BRIGHT + "    🧬 Powered by Cryptodai3 × YetiDAO | Buddy v1.5 🚀")
+        print(Fore.MAGENTA + Style.BRIGHT + "   Powered by Zonaairdrop")
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "═" * 60 + "\n")
 
     def format_seconds(self, seconds):
