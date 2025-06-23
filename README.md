@@ -64,41 +64,29 @@ cd Pharos-Bot
 ````
 pip install -r requirements.txt
 ````
+# accounts.txt
+````
+your_private_key_1
+your_private_key_2
+````
+
 (Optional) Create `proxies.txt`:
 
 Each proxy must be on a new line:
 
 ```
-http://user:pass@ip:port
-socks5://user:pass@ip:port
+127.0.0.1:8080
+http://127.0.0.1:8080
+http://user:pass@127.0.0.1:8080
 ```
 
 # Run Bot Start
 
 ````
-npm install
-node index.js
-   ````
-# Command For Mint Nft 
-
-````
-git pull
-npm install ethers@latest dotenv prompt-sync@latest
-````
-# Run Bot Mint 
-
-````
-gotchipus.js
-````
-`For push Task use Command`
-
-````
-node index.js
-````
-`For Mint Bot Use Command`
-
-````
-node gotchipus.js
+python bot1.py  # Pharos
+python bot2.py  # Gotchipus
+python bot3.py  # OpenFi
+python bot4.py  # Brokex
 ````
 
 # Check thx PharosScann 
