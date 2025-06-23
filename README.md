@@ -18,6 +18,16 @@
 
 🚀 Support. VPS & Termux 
 
+## 📦 Included Bots
+
+| File Name | Bot Name      | Description                        |
+| --------- | ------------- | ---------------------------------- |
+| `bot1.py` | Pharos BOT    | DeFi automation for Pharos Testnet |
+| `bot2.py` | Gotchipus BOT | NFT minting & wearable claiming    |
+| `bot3.py` | OpenFi BOT    | Lending, borrowing & DeFi services |
+| `bot4.py` | Brokex BOT    | Faucet claim and trade automation  |
+
+
 # Create Screen for vps 
 Install screen 
 
