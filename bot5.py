@@ -669,9 +669,9 @@ class PharosTestnet:
 
                 if option in [1, 2, 3, 4]:
                     option_type = (
-                        "Wrapped - Unwrapped" if option == 3 else
-                        "Add Liquidity Pool" if option == 4 else
-                        "Swap WPHRS - USDC - USDT" if option == 5 else
+                        "Wrapped - Unwrapped" if option == 1 else
+                        "Add Liquidity Pool" if option == 2 else
+                        "Swap WPHRS - USDC - USDT" if option == 3 else
                         "Run All Features"
                     )
                     print(f"{Fore.GREEN + Style.BRIGHT}{option_type} Selected.{Style.RESET_ALL}")
