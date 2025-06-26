@@ -127,7 +127,7 @@ class PharosTestnet:
 
     def welcome(self):
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
-        print(Fore.GREEN + Style.BRIGHT + "    Pharos BOT Tesnet")
+        print(Fore.GREEN + Style.BRIGHT + "    Pharos BOT Faroswap Tesnet")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
         print(Fore.YELLOW + Style.BRIGHT + "    Team zonaairdrop")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
@@ -670,13 +670,11 @@ class PharosTestnet:
                 print(f"{Fore.WHITE + Style.BRIGHT}6. Run All Features{Style.RESET_ALL}")
                 option = int(input(f"{Fore.BLUE + Style.BRIGHT}Choose [1/2/3/4/5/6] -> {Style.RESET_ALL}").strip())
 
-                if option in [1, 2, 3, 4, 5, 6]:
+                if option in [1, 2, 3]:
                     option_type = (
-                        "Check-In - Claim PHRS Faucet" if option == 1 else 
-                        "Send To Friends" if option == 2 else 
-                        "Wrapped - Unwrapped" if option == 3 else
-                        "Add Liquidity Pool" if option == 4 else
-                        "Swap WPHRS - USDC - USDT" if option == 5 else
+                        "Wrapped - Unwrapped" if option == 1 else
+                        "Add Liquidity Pool" if option == 2 else
+                        "Swap WPHRS - USDC - USDT" if option == 3 else
                         "Run All Features"
                     )
                     print(f"{Fore.GREEN + Style.BRIGHT}{option_type} Selected.{Style.RESET_ALL}")
