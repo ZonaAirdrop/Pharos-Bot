@@ -674,7 +674,7 @@ class PharosTestnet:
                         "Wrapped - Unwrapped" if option == 1 else
                         "Add Liquidity Pool" if option == 2 else
                         "Swap WPHRS - USDC - USDT" if option == 3 else
-                        "Run All Features"
+                        "Run All Features" if option == 4 else
                     )
                     print(f"{Fore.GREEN + Style.BRIGHT}{option_type} Selected.{Style.RESET_ALL}")
                     break
