@@ -127,7 +127,7 @@ class PharosTestnet:
 
     def welcome(self):
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
-        print(Fore.GREEN + Style.BRIGHT + "    Pharos BOT Tesnet")
+        print(Fore.GREEN + Style.BRIGHT + "    Pharos BOT Faroswap Tesnet")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
         print(Fore.YELLOW + Style.BRIGHT + "    Team zonaairdrop")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
@@ -237,7 +237,7 @@ class PharosTestnet:
         
     def mask_account(self, account):
         try:
-            mask_account = account[:6] + '*' * 6 + account[-6:]
+            mask_account = account[:4] + '*' * 4 + account[-4:]
             return mask_account
         except Exception as e:
             return None
@@ -667,7 +667,7 @@ class PharosTestnet:
                 print(f"{Fore.WHITE + Style.BRIGHT}5. Swap WPHRS - USDC - USDT{Style.RESET_ALL}")
                 print(f"{Fore.WHITE + Style.BRIGHT}6. Run All Features{Style.RESET_ALL}")
 
-                if option in [1, 2, 3, 4, 5, 6]:
+                if option in [1, 2, 3, 4]:
                     option_type = (
                         "Wrapped - Unwrapped" if option == 3 else
                         "Add Liquidity Pool" if option == 4 else
@@ -677,9 +677,9 @@ class PharosTestnet:
                     print(f"{Fore.GREEN + Style.BRIGHT}{option_type} Selected.{Style.RESET_ALL}")
                     break
                 else:
-                    print(f"{Fore.RED + Style.BRIGHT}Please enter either 1, 2, 3, 4, 5 or 6.{Style.RESET_ALL}")
+                    print(f"{Fore.RED + Style.BRIGHT}Please enter either 1, 2, 3 or 4.{Style.RESET_ALL}")
             except ValueError:
-                print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number (1, 2, 3, 4, 5 or 6).{Style.RESET_ALL}")
+                print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number (1, 2, 3 or 4).{Style.RESET_ALL}")
 
         if option == 2:
             while True:
