@@ -127,7 +127,7 @@ class PharosTestnet:
 
     def welcome(self):
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
-        print(Fore.GREEN + Style.BRIGHT + "    Pharos BOT Tesnet")
+        print(Fore.GREEN + Style.BRIGHT + "    Pharos BOT Faroswap Tesnet")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
         print(Fore.YELLOW + Style.BRIGHT + "    Team zonaairdrop")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
@@ -1766,5 +1766,5 @@ if __name__ == "__main__":
         print(
             f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
             f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-            f"{Fore.RED + Style.BRIGHT}[ EXIT ] Pharos Testnet - BOT{Style.RESET_ALL}                                       "                              
+            f"{Fore.RED + Style.BRIGHT}[ EXIT ] Faroswap Testnet - BOT{Style.RESET_ALL}                                       "                              
         )
