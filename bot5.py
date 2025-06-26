@@ -662,13 +662,11 @@ class PharosTestnet:
         while True:
             try:
                 print(f"{Fore.GREEN + Style.BRIGHT}Select Option:{Style.RESET_ALL}")
-                print(f"{Fore.WHITE + Style.BRIGHT}1. Check-In - Claim PHRS Faucet{Style.RESET_ALL}")
-                print(f"{Fore.WHITE + Style.BRIGHT}2. Send To Friends{Style.RESET_ALL}")
                 print(f"{Fore.WHITE + Style.BRIGHT}3. Wrapped - Unwrapped{Style.RESET_ALL}")
                 print(f"{Fore.WHITE + Style.BRIGHT}4. Add Liquidity Pool{Style.RESET_ALL}")
                 print(f"{Fore.WHITE + Style.BRIGHT}5. Swap WPHRS - USDC - USDT{Style.RESET_ALL}")
                 print(f"{Fore.WHITE + Style.BRIGHT}6. Run All Features{Style.RESET_ALL}")
-                option = int(input(f"{Fore.BLUE + Style.BRIGHT}Choose [1/2/3/4/5/6] -> {Style.RESET_ALL}").strip())
+                option = int(input(f"{Fore.BLUE + Style.BRIGHT}Choose [1/2/3] -> {Style.RESET_ALL}").strip())
 
                 if option in [1, 2, 3]:
                     option_type = (
@@ -1392,19 +1390,9 @@ class PharosTestnet:
         sign_in = await self.sign_in(address, proxy)
         if sign_in and sign_in.get("msg") == "ok":
             self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Check-In  :{Style.RESET_ALL}"
-                f"{Fore.GREEN+Style.BRIGHT} Claimed Successfully {Style.RESET_ALL}"
             )
         elif sign_in and sign_in.get("msg") == "already signed in today":
             self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Check-In  :{Style.RESET_ALL}"
-                f"{Fore.YELLOW+Style.BRIGHT} Already Claimed {Style.RESET_ALL}"
-            )
-        else:
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Check-In  :{Style.RESET_ALL}"
-                f"{Fore.RED+Style.BRIGHT} Not Claimed {Style.RESET_ALL}"
-            )
 
         faucet_status = await self.faucet_status(address, proxy)
         if faucet_status and faucet_status.get("msg") == "ok":
@@ -1637,8 +1625,6 @@ class PharosTestnet:
             elif option == 2:
                 self.log(
                     f"{Fore.CYAN+Style.BRIGHT}Option    :{Style.RESET_ALL}"
-                    f"{Fore.BLUE+Style.BRIGHT} Send To Friends {Style.RESET_ALL}"
-                )
 
                 await self.process_option_2(account, address, use_proxy)
 
