@@ -30,7 +30,7 @@ class PharosTestnet:
         self.USDC_CONTRACT_ADDRESS = "0x72df0bcd7276f2dFbAc900D1CE63c272C4BCcCED"
         self.USDT_CONTRACT_ADDRESS = "0xD4071393f8716661958F766DF660033b3d35fD29"
         self.SWAP_ROUTER_ADDRESS = "0x3541423f25a1ca5c98fdbcf478405d3f0aad1164"
-        self.POTITION_MANAGER_ADDRESS = "0xf05af5e9dc3b1dd3ad0c087bd80d7391283775e0"
+        self.POTITION_MANAGER_ADDRESS = "0x3541423f25a1ca5c98fdbcf478405d3f0aad1164"
         self.ERC20_CONTRACT_ABI = json.loads('''[
             {"type":"function","name":"balanceOf","stateMutability":"view","inputs":[{"name":"address","type":"address"}],"outputs":[{"name":"","type":"uint256"}]},
             {"type":"function","name":"allowance","stateMutability":"view","inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"outputs":[{"name":"","type":"uint256"}]},
