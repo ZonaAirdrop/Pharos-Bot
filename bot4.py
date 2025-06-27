@@ -47,7 +47,7 @@ class Brokex:
 
     def welcome(self):
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
-        print(Fore.GREEN + Style.BRIGHT + "    ⚡ Pharos Testnet Brokex Bot")
+        print(Fore.GREEN + Style.BRIGHT + "    ⚡ Pharos X Brokex Tesnet ⚡")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
         print(Fore.YELLOW + Style.BRIGHT + "    Team    : zonaairdrop")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
