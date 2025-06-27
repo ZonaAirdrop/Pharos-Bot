@@ -18,8 +18,6 @@
 
 🚀 Support. VPS & Termux 
 
-## 📦 Included Bots
-
 ## 🤖 Bot Files Overview
 
 | File       | Platform   | Functionality                            |
