@@ -97,7 +97,7 @@ class PharosTestnet:
                 "type": "function",
             },
         ]
-        self.ref_code = "8G8MJ3zGE5B7tJgP" # U can change it with yours.
+        self.ref_code = "8G8MJ3zGE5B7tJgP"
         self.proxies = []
         self.proxy_index = 0
         self.account_proxies = {}
@@ -172,7 +172,7 @@ class PharosTestnet:
 
     def check_proxy_schemes(self, proxies):
         schemes = ["http://", "https://", "socks4://", "socks5://"]
-        if any(proxies.startswith(scheme) for scheme in schemes:
+        if any(proxies.startswith(scheme) for scheme in schemes):
             return proxies
         return f"http://{proxies}"
 
@@ -197,14 +197,13 @@ class PharosTestnet:
         try:
             account = Account.from_key(account)
             address = account.address
-            
             return address
         except Exception as e:
             self.log(
                 f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
                 f"{Fore.RED+Style.BRIGHT} Generate Address Failed {Style.RESET_ALL}"
                 f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
-                f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}                  "
+                f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
             )
             return None
         
@@ -213,14 +212,13 @@ class PharosTestnet:
             encoded_message = encode_defunct(text="pharos")
             signed_message = Account.sign_message(encoded_message, private_key=account)
             signature = to_hex(signed_message.signature)
-
             return signature
         except Exception as e:
             self.log(
                 f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
                 f"{Fore.RED+Style.BRIGHT} Generate Signature Failed {Style.RESET_ALL}"
                 f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
-                f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}                  "
+                f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
             )
             return None
         
@@ -230,7 +228,6 @@ class PharosTestnet:
             private_key_hex = to_hex(private_key_bytes)
             account = Account.from_key(private_key_hex)
             receiver = account.address
-            
             return receiver
         except Exception as e:
             return None
@@ -317,7 +314,7 @@ class PharosTestnet:
 
         for attempt in range(retries):
             try:
-                web3 = Web3(Web3.HTTPProvider(self.RPC_URL, request_kwargs=request_kwargs)
+                web3 = Web3(Web3.HTTPProvider(self.RPC_URL, request_kwargs=request_kwargs))
                 web3.eth.get_block_number()
                 return web3
             except Exception as e:
@@ -1309,19 +1306,6 @@ class PharosTestnet:
                 f"{Fore.RED+Style.BRIGHT} Perform On-Chain Failed {Style.RESET_ALL}"
             )
 
-    async def print_timer(self):
-        for remaining in range(random.randint(self.min_delay, self.max_delay), 0, -1):
-            print(
-                f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-                f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-                f"{Fore.BLUE + Style.BRIGHT}Wait For{Style.RESET_ALL}"
-                f"{Fore.WHITE + Style.BRIGHT} {remaining} {Style.RESET_ALL}"
-                f"{Fore.BLUE + Style.BRIGHT}Seconds For Next Tx...{Style.RESET_ALL}",
-                end="\r",
-                flush=True
-            )
-            await asyncio.sleep(1)
-
     async def process_option_1(self, account: str, address: str, use_proxy: bool):
         if self.wrap_option == 1:
             self.log(f"{Fore.CYAN+Style.BRIGHT}Wrapped   :{Style.RESET_ALL}                      ")
@@ -1391,7 +1375,7 @@ class PharosTestnet:
             self.log(
                 f"{Fore.MAGENTA+Style.BRIGHT}        > {Style.RESET_ALL}"
                 f"{Fore.WHITE+Style.BRIGHT}{token0_balance} {ticker0}{Style.RESET_ALL}"
-            )
+           )
             self.log(
                 f"{Fore.MAGENTA+Style.BRIGHT}        > {Style.RESET_ALL}"
                 f"{Fore.WHITE+Style.BRIGHT}{token1_balance} {ticker1}{Style.RESET_ALL}"
