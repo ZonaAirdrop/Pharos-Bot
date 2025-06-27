@@ -83,10 +83,11 @@ http://user:pass@127.0.0.1:8080
 # Run Bot Start
 
 ````
-python bot1.py  # Pharos
-python bot2.py  # Gotchipus
+python bot1.py  # Zenith 
+python bot2.py  # Faroswap 
 python bot3.py  # OpenFi
 python bot4.py  # Brokex
+python bot5.py  # Gotchipus
 ````
 
 # Check thx PharosScann 
