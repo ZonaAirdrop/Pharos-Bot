@@ -20,13 +20,15 @@
 
 ## 📦 Included Bots
 
-| File Name | Bot Name      | Description                        |
-| --------- | ------------- | ---------------------------------- |
-| `bot1.py` | Pharos BOT    | DeFi automation for Pharos Testnet |
-| `bot2.py` | Gotchipus BOT | NFT minting & wearable claiming    |
-| `bot3.py` | OpenFi BOT    | Lending, borrowing & DeFi services |
-| `bot4.py` | Brokex BOT    | Faucet claim and trade automation  |
+## 🤖 Bot Files Overview
 
+| File       | Platform   | Functionality                            |
+|------------|------------|------------------------------------------|
+| `bot1.py`  | Zenith     | Automated DeFi actions (swap/liquidity) |
+| `bot2.py`  | FaroSwap   | Swap and liquidity automation            |
+| `bot3.py`  | OpenFi     | Lending, borrowing & DeFi ops            |
+| `bot4.py`  | Brokex     | Auto faucet claim & trade operations     |
+| `bot5.py`  | Gotchipus  | NFT minting, wearable claiming           |
 
 # Create Screen for vps 
 Install screen 
