@@ -172,7 +172,7 @@ class PharosTestnet:
 
     def check_proxy_schemes(self, proxies):
         schemes = ["http://", "https://", "socks4://", "socks5://"]
-        if any(proxies.startswith(scheme) for scheme in schemes):
+        if any(proxies.startswith(scheme) for scheme in schemes:
             return proxies
         return f"http://{proxies}"
 
@@ -317,7 +317,7 @@ class PharosTestnet:
 
         for attempt in range(retries):
             try:
-                web3 = Web3(Web3.HTTPProvider(self.RPC_URL, request_kwargs=request_kwargs))
+                web3 = Web3(Web3.HTTPProvider(self.RPC_URL, request_kwargs=request_kwargs)
                 web3.eth.get_block_number()
                 return web3
             except Exception as e:
@@ -662,77 +662,28 @@ class PharosTestnet:
         while True:
             try:
                 print(f"{Fore.GREEN + Style.BRIGHT}Select Option:{Style.RESET_ALL}")
-                print(f"{Fore.WHITE + Style.BRIGHT}1. Check-In - Claim PHRS Faucet{Style.RESET_ALL}")
-                print(f"{Fore.WHITE + Style.BRIGHT}2. Send To Friends{Style.RESET_ALL}")
-                print(f"{Fore.WHITE + Style.BRIGHT}3. Wrapped - Unwrapped{Style.RESET_ALL}")
-                print(f"{Fore.WHITE + Style.BRIGHT}4. Add Liquidity Pool{Style.RESET_ALL}")
-                print(f"{Fore.WHITE + Style.BRIGHT}5. Swap WPHRS - USDC - USDT{Style.RESET_ALL}")
-                print(f"{Fore.WHITE + Style.BRIGHT}6. Run All Features{Style.RESET_ALL}")
+                print(f"{Fore.WHITE + Style.BRIGHT}1. Wrapped - Unwrapped{Style.RESET_ALL}")
+                print(f"{Fore.WHITE + Style.BRIGHT}2. Add Liquidity Pool{Style.RESET_ALL}")
+                print(f"{Fore.WHITE + Style.BRIGHT}3. Swap WPHRS - USDC - USDT{Style.RESET_ALL}")
+                print(f"{Fore.WHITE + Style.BRIGHT}4. Run All Features{Style.RESET_ALL}")
 
-                option = int(input(f"{Fore.BLUE + Style.BRIGHT}Choose [1/2/3/4/5/6] -> {Style.RESET_ALL}").strip())
+                option = int(input(f"{Fore.BLUE + Style.BRIGHT}Choose [1/2/3/4] -> {Style.RESET_ALL}").strip())
 
-                if option in [1, 2, 3, 4, 5, 6]:
+                if option in [1, 2, 3, 4]:
                     option_type = (
-                        "Check-In - Claim PHRS Faucet" if option == 1 else
-                        "Send To Friends" if option == 2 else
-                        "Wrapped - Unwrapped" if option == 3 else
-                        "Add Liquidity Pool" if option == 4 else
-                        "Swap WPHRS - USDC - USDT" if option == 5 else
+                        "Wrapped - Unwrapped" if option == 1 else
+                        "Add Liquidity Pool" if option == 2 else
+                        "Swap WPHRS - USDC - USDT" if option == 3 else
                         "Run All Features"
                     )
                     print(f"{Fore.GREEN + Style.BRIGHT}{option_type} Selected.{Style.RESET_ALL}")
                     break
                 else:
-                    print(f"{Fore.RED + Style.BRIGHT}Please enter either 1, 2, 3, 4, 5 or 6.{Style.RESET_ALL}")
+                    print(f"{Fore.RED + Style.BRIGHT}Please enter either 1, 2, 3 or 4.{Style.RESET_ALL}")
             except ValueError:
-                print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number (1, 2, 3, 4, 5 or 6).{Style.RESET_ALL}")
+                print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number (1, 2, 3 or 4).{Style.RESET_ALL}")
 
-        if option == 2:
-            while True:
-                try:
-                    tx_count = int(input(f"{Fore.YELLOW + Style.BRIGHT}How Many Times Do You Want To Make a Transfer? -> {Style.RESET_ALL}").strip())
-                    if tx_count > 0:
-                        self.tx_count = tx_count
-                        break
-                    else:
-                        print(f"{Fore.RED + Style.BRIGHT}Please enter positive number.{Style.RESET_ALL}")
-                except ValueError:
-                    print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number.{Style.RESET_ALL}")
-
-            while True:
-                try:
-                    tx_amount = float(input(f"{Fore.YELLOW + Style.BRIGHT}Enter Amount for Each Transfers [1 or 0.01 or 0.001, etc in decimals] -> {Style.RESET_ALL}").strip())
-                    if tx_amount > 0:
-                        self.tx_amount = tx_amount
-                        break
-                    else:
-                        print(f"{Fore.RED + Style.BRIGHT}Amount must be greater than 0.{Style.RESET_ALL}")
-                except ValueError:
-                    print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a float or decimal number.{Style.RESET_ALL}")
-
-            while True:
-                try:
-                    min_delay = int(input(f"{Fore.YELLOW + Style.BRIGHT}Min Delay Each Tx -> {Style.RESET_ALL}").strip())
-                    if min_delay >= 0:
-                        self.min_delay = min_delay
-                        break
-                    else:
-                        print(f"{Fore.RED + Style.BRIGHT}Min Delay must be >= 0.{Style.RESET_ALL}")
-                except ValueError:
-                    print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number.{Style.RESET_ALL}")
-
-            while True:
-                try:
-                    max_delay = int(input(f"{Fore.YELLOW + Style.BRIGHT}Max Delay Each Tx -> {Style.RESET_ALL}").strip())
-                    if max_delay >= min_delay:
-                        self.max_delay = max_delay
-                        break
-                    else:
-                        print(f"{Fore.RED + Style.BRIGHT}Min Delay must be >= Min Delay.{Style.RESET_ALL}")
-                except ValueError:
-                    print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number.{Style.RESET_ALL}")
-
-        elif option == 3:
+        if option == 1:
             while True:
                 try:
                     print(f"{Fore.GREEN + Style.BRIGHT}Select Option:{Style.RESET_ALL}")
@@ -764,7 +715,7 @@ class PharosTestnet:
                 except ValueError:
                     print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a float or decimal number.{Style.RESET_ALL}")
 
-        elif option == 4:
+        elif option == 2:
             while True:
                 try:
                     add_lp_count = int(input(f"{Fore.YELLOW + Style.BRIGHT}How Many Times Do You Want To Add Liquidity Pool? -> {Style.RESET_ALL}").strip())
@@ -794,11 +745,11 @@ class PharosTestnet:
                         self.max_delay = max_delay
                         break
                     else:
-                        print(f"{Fore.RED + Style.BRIGHT}Min Delay must be >= Min Delay.{Style.RESET_ALL}")
+                        print(f"{Fore.RED + Style.BRIGHT}Max Delay must be >= Min Delay.{Style.RESET_ALL}")
                 except ValueError:
                     print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number.{Style.RESET_ALL}")
 
-        elif option == 5:
+        elif option == 3:
             while True:
                 try:
                     swap_count = int(input(f"{Fore.YELLOW + Style.BRIGHT}How Many Times Do You Want To Make a Swap? -> {Style.RESET_ALL}").strip())
@@ -861,33 +812,11 @@ class PharosTestnet:
                         self.max_delay = max_delay
                         break
                     else:
-                        print(f"{Fore.RED + Style.BRIGHT}Min Delay must be >= Min Delay.{Style.RESET_ALL}")
+                        print(f"{Fore.RED + Style.BRIGHT}Max Delay must be >= Min Delay.{Style.RESET_ALL}")
                 except ValueError:
                     print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number.{Style.RESET_ALL}")
 
-        elif option == 6:
-            while True:
-                try:
-                    tx_count = int(input(f"{Fore.YELLOW + Style.BRIGHT}How Many Times Do You Want To Make a Transfer? -> {Style.RESET_ALL}").strip())
-                    if tx_count > 0:
-                        self.tx_count = tx_count
-                        break
-                    else:
-                        print(f"{Fore.RED + Style.BRIGHT}Please enter positive number.{Style.RESET_ALL}")
-                except ValueError:
-                    print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number.{Style.RESET_ALL}")
-
-            while True:
-                try:
-                    tx_amount = float(input(f"{Fore.YELLOW + Style.BRIGHT}Enter Amount for Each Transfers [1 or 0.01 or 0.001, etc in decimals] -> {Style.RESET_ALL}").strip())
-                    if tx_amount > 0:
-                        self.tx_amount = tx_amount
-                        break
-                    else:
-                        print(f"{Fore.RED + Style.BRIGHT}Amount must be greater than 0.{Style.RESET_ALL}")
-                except ValueError:
-                    print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a float or decimal number.{Style.RESET_ALL}")
-
+        elif option == 4:
             while True:
                 try:
                     print(f"{Fore.GREEN + Style.BRIGHT}Select Option:{Style.RESET_ALL}")
@@ -995,7 +924,7 @@ class PharosTestnet:
                         self.max_delay = max_delay
                         break
                     else:
-                        print(f"{Fore.RED + Style.BRIGHT}Min Delay must be >= Min Delay.{Style.RESET_ALL}")
+                        print(f"{Fore.RED + Style.BRIGHT}Max Delay must be >= Min Delay.{Style.RESET_ALL}")
                 except ValueError:
                     print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number.{Style.RESET_ALL}")
         
@@ -1380,112 +1309,20 @@ class PharosTestnet:
                 f"{Fore.RED+Style.BRIGHT} Perform On-Chain Failed {Style.RESET_ALL}"
             )
 
-    async def process_option_1(self, address: str, use_proxy: bool):
-        proxy = self.get_next_proxy_for_account(address) if use_proxy else None
-
-        profile = await self.user_profile(address, proxy)
-        if profile and profile.get("msg") == "ok":
-            points = profile.get("data", {}).get("user_info", {}).get("TotalPoints", 0)
-
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Balance   :{Style.RESET_ALL}"
-                f"{Fore.WHITE+Style.BRIGHT} {points} PTS {Style.RESET_ALL}"
+    async def print_timer(self):
+        for remaining in range(random.randint(self.min_delay, self.max_delay), 0, -1):
+            print(
+                f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                f"{Fore.BLUE + Style.BRIGHT}Wait For{Style.RESET_ALL}"
+                f"{Fore.WHITE + Style.BRIGHT} {remaining} {Style.RESET_ALL}"
+                f"{Fore.BLUE + Style.BRIGHT}Seconds For Next Tx...{Style.RESET_ALL}",
+                end="\r",
+                flush=True
             )
+            await asyncio.sleep(1)
 
-        sign_in = await self.sign_in(address, proxy)
-        if sign_in and sign_in.get("msg") == "ok":
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Check-In  :{Style.RESET_ALL}"
-                f"{Fore.GREEN+Style.BRIGHT} Claimed Successfully {Style.RESET_ALL}"
-            )
-        elif sign_in and sign_in.get("msg") == "already signed in today":
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Check-In  :{Style.RESET_ALL}"
-                f"{Fore.YELLOW+Style.BRIGHT} Already Claimed {Style.RESET_ALL}"
-            )
-        else:
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Check-In  :{Style.RESET_ALL}"
-                f"{Fore.RED+Style.BRIGHT} Not Claimed {Style.RESET_ALL}"
-            )
-
-        faucet_status = await self.faucet_status(address, proxy)
-        if faucet_status and faucet_status.get("msg") == "ok":
-            is_able = faucet_status.get("data", {}).get("is_able_to_faucet", False)
-
-            if is_able:
-                claim = await self.claim_faucet(address, proxy)
-                if claim and claim.get("msg") == "ok":
-                    self.log(
-                        f"{Fore.CYAN+Style.BRIGHT}Faucet    :{Style.RESET_ALL}"
-                        f"{Fore.WHITE+Style.BRIGHT} 0.2 PHRS {Style.RESET_ALL}"
-                        f"{Fore.GREEN+Style.BRIGHT}Claimed Successfully{Style.RESET_ALL}"
-                    )
-                elif claim and claim.get("msg") == "user has not bound X account":
-                    self.log(
-                        f"{Fore.CYAN+Style.BRIGHT}Faucet    :{Style.RESET_ALL}"
-                        f"{Fore.RED+Style.BRIGHT} Not Eligible to Claim {Style.RESET_ALL}"
-                        f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
-                        f"{Fore.YELLOW+Style.BRIGHT} Bind X Account First {Style.RESET_ALL}"
-                    )
-                else:
-                    self.log(
-                        f"{Fore.CYAN+Style.BRIGHT}Faucet    :{Style.RESET_ALL}"
-                        f"{Fore.RED+Style.BRIGHT} Not Claimed {Style.RESET_ALL}"
-                    )
-            else:
-                faucet_available_ts = faucet_status.get("data", {}).get("avaliable_timestamp", None)
-                faucet_available_wib = datetime.fromtimestamp(faucet_available_ts).astimezone(wib).strftime('%x %X %Z')
-                self.log(
-                    f"{Fore.CYAN+Style.BRIGHT}Faucet    :{Style.RESET_ALL}"
-                    f"{Fore.YELLOW+Style.BRIGHT} Already Claimed {Style.RESET_ALL}"
-                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
-                    f"{Fore.CYAN+Style.BRIGHT} Available at: {Style.RESET_ALL}"
-                    f"{Fore.WHITE+Style.BRIGHT}{faucet_available_wib}{Style.RESET_ALL}"
-                )
-        else:
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Faucet    :{Style.RESET_ALL}"
-                f"{Fore.RED+Style.BRIGHT} GET Eligibility Status Failed {Style.RESET_ALL}"
-            )
-
-    async def process_option_2(self, account: str, address: str, use_proxy: bool):
-        self.log(f"{Fore.CYAN+Style.BRIGHT}Transfer  :{Style.RESET_ALL}                       ")
-        await asyncio.sleep(5)
-
-        for i in range(self.tx_count):
-            self.log(
-                f"{Fore.MAGENTA+Style.BRIGHT}   ● {Style.RESET_ALL}"
-                f"{Fore.GREEN+Style.BRIGHT}Tx - {i+1}{Style.RESET_ALL}                       "
-            )
-
-            receiver = self.generate_random_receiver()
-
-            balance = await self.get_token_balance(address, "PHRS", use_proxy)
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}     Balance :{Style.RESET_ALL}"
-                f"{Fore.WHITE+Style.BRIGHT} {balance} PHRS {Style.RESET_ALL}"
-            )
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}     Amount  :{Style.RESET_ALL}"
-                f"{Fore.WHITE+Style.BRIGHT} {self.tx_amount} PHRS {Style.RESET_ALL}"
-            )
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}     Receiver:{Style.RESET_ALL}"
-                f"{Fore.WHITE+Style.BRIGHT} {receiver} {Style.RESET_ALL}"
-            )
-
-            if not balance or balance <= self.tx_amount:
-                self.log(
-                    f"{Fore.CYAN+Style.BRIGHT}     Status  :{Style.RESET_ALL}"
-                    f"{Fore.YELLOW+Style.BRIGHT} Insufficient PHRS Token Balance {Style.RESET_ALL}"
-                )
-                break
-
-            await self.process_perform_transfer(account, address, receiver, use_proxy)
-            await self.print_timer()
-
-    async def process_option_3(self, account: str, address: str, use_proxy):
+    async def process_option_1(self, account: str, address: str, use_proxy: bool):
         if self.wrap_option == 1:
             self.log(f"{Fore.CYAN+Style.BRIGHT}Wrapped   :{Style.RESET_ALL}                      ")
 
@@ -1530,7 +1367,7 @@ class PharosTestnet:
             
             await self.process_perform_unwrapped(account, address, use_proxy)
 
-    async def process_option_4(self, account: str, address: str, use_proxy: bool):
+    async def process_option_2(self, account: str, address: str, use_proxy: bool):
         self.log(f"{Fore.CYAN+Style.BRIGHT}Liquidity :{Style.RESET_ALL}                       ")
 
         for i in range(self.add_lp_count):
@@ -1586,7 +1423,7 @@ class PharosTestnet:
             await self.process_perform_add_liquidity(account, address, add_lp_option, token0, token1, amount0, amount1, ticker0, ticker1, use_proxy)
             await self.print_timer()
 
-    async def process_option_5(self, account: str, address: str, use_proxy: bool):
+    async def process_option_3(self, account: str, address: str, use_proxy: bool):
         self.log(f"{Fore.CYAN+Style.BRIGHT}Swap      :{Style.RESET_ALL}                       ")
 
         for i in range(self.swap_count):
@@ -1632,43 +1469,26 @@ class PharosTestnet:
             if option == 1:
                 self.log(
                     f"{Fore.CYAN+Style.BRIGHT}Option    :{Style.RESET_ALL}"
-                    f"{Fore.BLUE+Style.BRIGHT} Check-In - Claim PHRS Faucet {Style.RESET_ALL}"
+                    f"{Fore.BLUE+Style.BRIGHT} Wrapped - Unwrapped {Style.RESET_ALL}"
                 )
 
-                await self.process_option_1(address, use_proxy)
+                await self.process_option_1(account, address, use_proxy)
 
             elif option == 2:
-                self.log(
-                    f"{Fore.CYAN+Style.BRIGHT}Option    :{Style.RESET_ALL}"
-                    f"{Fore.BLUE+Style.BRIGHT} Send To Friends {Style.RESET_ALL}"
-                )
-
-                await self.process_option_2(account, address, use_proxy)
-
-            elif option == 3:
-                wrap_type = "Wrap PHRS to WPHRS" if self.wrap_amount == 1 else "Unwrap WPHRS to PHRS"
-                self.log(
-                    f"{Fore.CYAN+Style.BRIGHT}Option    :{Style.RESET_ALL}"
-                    f"{Fore.BLUE+Style.BRIGHT} {wrap_type} {Style.RESET_ALL}"
-                )
-                
-                await self.process_option_3(account, address, use_proxy)
-
-            elif option == 4:
                 self.log(
                     f"{Fore.CYAN+Style.BRIGHT}Option    :{Style.RESET_ALL}"
                     f"{Fore.BLUE+Style.BRIGHT} Add Liquidity Pool {Style.RESET_ALL}"
                 )
 
-                await self.process_option_4(account, address, use_proxy)
+                await self.process_option_2(account, address, use_proxy)
 
-            elif option == 5:
+            elif option == 3:
                 self.log(
                     f"{Fore.CYAN+Style.BRIGHT}Option    :{Style.RESET_ALL}"
                     f"{Fore.BLUE+Style.BRIGHT} Swap WPHRS - USDC - USDT  {Style.RESET_ALL}"
                 )
 
-                await self.process_option_5(account, address, use_proxy)
+                await self.process_option_3(account, address, use_proxy)
 
             else:
                 self.log(
@@ -1676,19 +1496,13 @@ class PharosTestnet:
                     f"{Fore.BLUE+Style.BRIGHT} Run All Features {Style.RESET_ALL}"
                 )
 
-                await self.process_option_1(address, use_proxy)
+                await self.process_option_1(account, address, use_proxy)
                 await asyncio.sleep(5)
-
+                
                 await self.process_option_2(account, address, use_proxy)
                 await asyncio.sleep(5)
 
                 await self.process_option_3(account, address, use_proxy)
-                await asyncio.sleep(5)
-                
-                await self.process_option_4(account, address, use_proxy)
-                await asyncio.sleep(5)
-
-                await self.process_option_5(account, address, use_proxy)
                 await asyncio.sleep(5)
 
     async def main(self):
@@ -1767,5 +1581,5 @@ if __name__ == "__main__":
         print(
             f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
             f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-            f"{Fore.RED + Style.BRIGHT}[ EXIT ] Pharos Testnet Faroswap - BOT{Style.RESET_ALL}                                       "                              
+            f"{Fore.RED + Style.BRIGHT}[ EXIT ] Pharos Testnet - BOT{Style.RESET_ALL}                                       "                              
         )
