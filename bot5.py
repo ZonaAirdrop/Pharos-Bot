@@ -45,19 +45,18 @@ class Gotchipus:
         )
 
     def welcome(self):
-        logo = r"""
-    \033[36m┌─┐┬ ┬┌┐┌┌─┐┌─┐  ┌─┐┬┌┬┐┌─┐┬─┐┌┬┐┌─┐┬─┐\033[0m
-    \033[36m│ ┬│ ││││├┤ ├─┤  │  │ │ │ │├┬┘ │ ├┤ ├┬┘\033[0m
-    \033[36m└─┘└─┘┘└┘└─┘┴ ┴  └─┘┴ ┴ └─┘┴└─ ┴ └─┘┴└─\033[0m
-
-====================================================
-     \033[35mPlatform\033[0m          : \033[36mzonaairdrop\033[0m
-     \033[35mTelegram Channel\033[0m  : \033[36m@ZonaAirdr0p\033[0m
-     \033[35mTelegram Group\033[0m    : \033[36m@ZonaAirdropGroup\033[0m
-     \033[35mDescription\033[0m      : \033[36mPlatform Airdrop Terpercaya\033[0m
-====================================================
-    """
-        print(logo)
+    print(f"""{Fore.CYAN}
+    ┌─┐┬ ┬┌┐┌┌─┐┌─┐  ┌─┐┬┌┬┐┌─┐┬─┐┌┬┐┌─┐┬─┐
+    │ ┬│ ││││├┤ ├─┤  │  │ │ │ │├┬┘ │ ├┤ ├┬┘
+    └─┘└─┘┘└┘└─┘┴ ┴  └─┘┴ ┴ └─┘┴└─ ┴ └─┘┴└─{Style.RESET_ALL}
+    
+{Fore.YELLOW}===================================================={Style.RESET_ALL}
+     {Fore.MAGENTA}Platform{Style.RESET_ALL}          : {Fore.CYAN}zonaairdrop{Style.RESET_ALL}
+     {Fore.MAGENTA}Telegram Channel{Style.RESET_ALL}  : {Fore.CYAN}@ZonaAirdr0p{Style.RESET_ALL}
+     {Fore.MAGENTA}Telegram Group{Style.RESET_ALL}    : {Fore.CYAN}@ZonaAirdropGroup{Style.RESET_ALL}
+     {Fore.MAGENTA}Description{Style.RESET_ALL}      : {Fore.CYAN}Platform Airdrop Terpercaya{Style.RESET_ALL}
+{Fore.YELLOW}===================================================={Style.RESET_ALL}
+    """)
 
     def format_seconds(self, seconds):
         hours, remainder = divmod(seconds, 3600)
