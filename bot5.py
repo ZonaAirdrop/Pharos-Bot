@@ -50,6 +50,8 @@ class Gotchipus:
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
         print(Fore.YELLOW + Style.BRIGHT + "    Team : Zonaairdrop")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
+        print(Fore.YELLOW + Style.BRIGHT + "   Chanel telegram : @ZonaAirdr0p")
+        print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
         print(Fore.MAGENTA + Style.BRIGHT + "   Powered by Zonaairdrop")
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "═" * 60 + "\n")
 
