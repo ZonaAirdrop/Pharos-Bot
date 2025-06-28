@@ -44,22 +44,22 @@ class Gotchipus:
             flush=True
         )
 
-        function showLogo() {
-    const logo = `
-    \x1b[36m┌─┐┬ ┬┌┐┌┌─┐┌─┐  ┌─┐┬┌┬┐┌─┐┬─┐┌┬┐┌─┐┬─┐\x1b[0m
-    \x1b[36m│ ┬│ ││││├┤ ├─┤  │  │ │ │ │├┬┘ │ ├┤ ├┬┘\x1b[0m
-    \x1b[36m└─┘└─┘┘└┘└─┘┴ ┴  └─┘┴ ┴ └─┘┴└─ ┴ └─┘┴└─\x1b[0m
+        def show_logo():
+    logo = """
+    \033[36m┌─┐┬ ┬┌┐┌┌─┐┌─┐  ┌─┐┬┌┬┐┌─┐┬─┐┌┬┐┌─┐┬─┐\033[0m
+    \033[36m│ ┬│ ││││├┤ ├─┤  │  │ │ │ │├┬┘ │ ├┤ ├┬┘\033[0m
+    \033[36m└─┘└─┘┘└┘└─┘┴ ┴  └─┘┴ ┴ └─┘┴└─ ┴ └─┘┴└─\033[0m
 
 ====================================================
-     \x1b[35m Information\x1b[0m          : \x1b[36Gotchipus Auto Mint\x1b[0m
-     \x1b[35mTelegram Channel\x1b[0m  : \x1b[36m@ZonaAirdr0p\x1b[0m
-     \x1b[35mTelegram Group\x1b[0m    : \x1b[36m@ZonaAirdropGroup\x1b[0m
-     \x1b[35mDescription\x1b[0m      : \x1b[36mP Choose according to your wishes\x1b[0m
+     \033[35mPlatform\033[0m          : \033[36mzonaairdrop\033[0m
+     \033[35mTelegram Channel\033[0m  : \033[36m@ZonaAirdr0p\033[0m
+     \033[35mTelegram Group\033[0m    : \033[36m@ZonaAirdropGroup\033[0m
+     \033[35mDescription\033[0m      : \033[36mPlatform Airdrop Terpercaya\033[0m
 ====================================================
-    `;
-    console.log(logo);
-}
-showLogo();
+    """
+    print(logo)
+
+show_logo()
 
     def format_seconds(self, seconds):
         hours, remainder = divmod(seconds, 3600)
