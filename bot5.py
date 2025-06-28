@@ -45,13 +45,22 @@ class Gotchipus:
         )
 
     def welcome(self):
-        print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
-        print(Fore.GREEN + Style.BRIGHT + "    ⚡Pharos X Gotchipus Tesnet⚡")
-        print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
-        print(Fore.YELLOW + Style.BRIGHT + "    Team : Zonaairdrop")
-        print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
-        print(Fore.MAGENTA + Style.BRIGHT + "   Powered by Zonaairdrop")
-        print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "═" * 60 + "\n")
+        function showLogo() {
+    const logo = `
+    \x1b[36m┌─┐┬ ┬┌┐┌┌─┐┌─┐  ┌─┐┬┌┬┐┌─┐┬─┐┌┬┐┌─┐┬─┐\x1b[0m
+    \x1b[36m│ ┬│ ││││├┤ ├─┤  │  │ │ │ │├┬┘ │ ├┤ ├┬┘\x1b[0m
+    \x1b[36m└─┘└─┘┘└┘└─┘┴ ┴  └─┘┴ ┴ └─┘┴└─ ┴ └─┘┴└─\x1b[0m
+
+====================================================
+     \x1b[35m Information\x1b[0m          : \x1b[36Gotchipus Auto Mint\x1b[0m
+     \x1b[35mTelegram Channel\x1b[0m  : \x1b[36m@ZonaAirdr0p\x1b[0m
+     \x1b[35mTelegram Group\x1b[0m    : \x1b[36m@ZonaAirdropGroup\x1b[0m
+     \x1b[35mDescription\x1b[0m      : \x1b[36mP Choose according to your wishes\x1b[0m
+====================================================
+    `;
+    console.log(logo);
+}
+showLogo();
 
     def format_seconds(self, seconds):
         hours, remainder = divmod(seconds, 3600)
