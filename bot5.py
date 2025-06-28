@@ -45,18 +45,13 @@ class Gotchipus:
         )
 
     def welcome(self):
-    print(f"""{Fore.CYAN}
-    ┌─┐┬ ┬┌┐┌┌─┐┌─┐  ┌─┐┬┌┬┐┌─┐┬─┐┌┬┐┌─┐┬─┐
-    │ ┬│ ││││├┤ ├─┤  │  │ │ │ │├┬┘ │ ├┤ ├┬┘
-    └─┘└─┘┘└┘└─┘┴ ┴  └─┘┴ ┴ └─┘┴└─ ┴ └─┘┴└─{Style.RESET_ALL}
-    
-{Fore.YELLOW}===================================================={Style.RESET_ALL}
-     {Fore.MAGENTA}Platform{Style.RESET_ALL}          : {Fore.CYAN}zonaairdrop{Style.RESET_ALL}
-     {Fore.MAGENTA}Telegram Channel{Style.RESET_ALL}  : {Fore.CYAN}@ZonaAirdr0p{Style.RESET_ALL}
-     {Fore.MAGENTA}Telegram Group{Style.RESET_ALL}    : {Fore.CYAN}@ZonaAirdropGroup{Style.RESET_ALL}
-     {Fore.MAGENTA}Description{Style.RESET_ALL}      : {Fore.CYAN}Platform Airdrop Terpercaya{Style.RESET_ALL}
-{Fore.YELLOW}===================================================={Style.RESET_ALL}
-    """)
+        print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
+        print(Fore.GREEN + Style.BRIGHT + "    ⚡Pharos X Gotchipus Tesnet⚡")
+        print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
+        print(Fore.YELLOW + Style.BRIGHT + "    Team : Zonaairdrop")
+        print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
+        print(Fore.MAGENTA + Style.BRIGHT + "   Powered by Zonaairdrop")
+        print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "═" * 60 + "\n")
 
     def format_seconds(self, seconds):
         hours, remainder = divmod(seconds, 3600)
@@ -121,6 +116,7 @@ class Gotchipus:
         try:
             account = Account.from_key(account)
             address = account.address
+            
             return address
         except Exception as e:
             return None
@@ -156,6 +152,7 @@ class Gotchipus:
             web3 = await self.get_web3_with_check(address, use_proxy)
             balance = web3.eth.get_balance(address)
             token_balance = balance / (10 ** 18)
+
             return token_balance
         except Exception as e:
             self.log(
@@ -167,6 +164,7 @@ class Gotchipus:
     async def perform_mint_nft(self, account: str, address: str, use_proxy: bool):
         try:
             web3 = await self.get_web3_with_check(address, use_proxy)
+
             contract_address = web3.to_checksum_address(self.NFT_CONTRACT_ADDRESS)
             token_contract = web3.eth.contract(address=contract_address, abi=self.MINT_CONTRACT_ABI)
 
@@ -202,6 +200,7 @@ class Gotchipus:
     async def perform_claim_wearable(self, account: str, address: str, use_proxy: bool):
         try:
             web3 = await self.get_web3_with_check(address, use_proxy)
+
             contract_address = web3.to_checksum_address(self.NFT_CONTRACT_ADDRESS)
             token_contract = web3.eth.contract(address=contract_address, abi=self.MINT_CONTRACT_ABI)
 
@@ -349,7 +348,7 @@ class Gotchipus:
             f"{Fore.WHITE+Style.BRIGHT} {fees} PHRS {Style.RESET_ALL}"
         )
 
-        if not balance or balance <= fees:
+        if not balance or balance <=  fees:
             self.log(
                 f"{Fore.CYAN+Style.BRIGHT}   Status  :{Style.RESET_ALL}"
                 f"{Fore.YELLOW+Style.BRIGHT} Insufficient PHRS Token Balance {Style.RESET_ALL}"
@@ -374,7 +373,7 @@ class Gotchipus:
             f"{Fore.WHITE+Style.BRIGHT} {fees} PHRS {Style.RESET_ALL}"
         )
 
-        if not balance or balance <= fees:
+        if not balance or balance <=  fees:
             self.log(
                 f"{Fore.CYAN+Style.BRIGHT}   Status  :{Style.RESET_ALL}"
                 f"{Fore.YELLOW+Style.BRIGHT} Insufficient PHRS Token Balance {Style.RESET_ALL}"
@@ -391,13 +390,32 @@ class Gotchipus:
         )
             
         if option == 1:
+            self.log(
+                f"{Fore.CYAN+Style.BRIGHT}Option  :{Style.RESET_ALL}"
+                f"{Fore.BLUE+Style.BRIGHT} Mint Gotchipus NFT {Style.RESET_ALL}"
+            )
+            
             await self.process_option_1(account, address, use_proxy)
-        elif option == 2:
+
+        if option == 2:
+            self.log(
+                f"{Fore.CYAN+Style.BRIGHT}Option  :{Style.RESET_ALL}"
+                f"{Fore.BLUE+Style.BRIGHT} Claim Wearable {Style.RESET_ALL}"
+            )
+            
             await self.process_option_2(account, address, use_proxy)
+
         else:
+            self.log(
+                f"{Fore.CYAN+Style.BRIGHT}Option  :{Style.RESET_ALL}"
+                f"{Fore.BLUE+Style.BRIGHT} Run All Features {Style.RESET_ALL}"
+            )
+            
             await self.process_option_1(account, address, use_proxy)
             await asyncio.sleep(5)
+
             await self.process_option_2(account, address, use_proxy)
+            await asyncio.sleep(5)
 
     async def main(self):
         try:
@@ -405,56 +423,61 @@ class Gotchipus:
                 accounts = [line.strip() for line in file if line.strip()]
             
             option, use_proxy_choice = self.print_question()
-            use_proxy = use_proxy_choice in [1, 2]
 
-            self.clear_terminal()
-            self.welcome()
-            self.log(
-                f"{Fore.GREEN + Style.BRIGHT}Account's Total: {Style.RESET_ALL}"
-                f"{Fore.WHITE + Style.BRIGHT}{len(accounts)}{Style.RESET_ALL}"
-            )
+            while True:
+                use_proxy = False
+                if use_proxy_choice in [1, 2]:
+                    use_proxy = True
 
-            if use_proxy:
-                await self.load_proxies(use_proxy_choice)
-            
-            separator = "=" * 25
-            for account in accounts:
-                if account:
-                    address = self.generate_address(account)
-
-                    self.log(
-                        f"{Fore.CYAN + Style.BRIGHT}{separator}[{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} {self.mask_account(address)} {Style.RESET_ALL}"
-                        f"{Fore.CYAN + Style.BRIGHT}]{separator}{Style.RESET_ALL}"
-                    )
-
-                    if not address:
-                        self.log(
-                            f"{Fore.CYAN + Style.BRIGHT}Status  :{Style.RESET_ALL}"
-                            f"{Fore.RED + Style.BRIGHT} Invalid Private Key or Library Version Not Supported {Style.RESET_ALL}"
-                        )
-                        continue
-
-                    await self.process_accounts(account, address, option, use_proxy)
-                    await asyncio.sleep(3)
-
-            self.log(f"{Fore.CYAN + Style.BRIGHT}={Style.RESET_ALL}"*72)
-            seconds = 24 * 60 * 60
-            while seconds > 0:
-                formatted_time = self.format_seconds(seconds)
-                print(
-                    f"{Fore.CYAN+Style.BRIGHT}[ Wait for{Style.RESET_ALL}"
-                    f"{Fore.WHITE+Style.BRIGHT} {formatted_time} {Style.RESET_ALL}"
-                    f"{Fore.CYAN+Style.BRIGHT}... ]{Style.RESET_ALL}"
-                    f"{Fore.WHITE+Style.BRIGHT} | {Style.RESET_ALL}"
-                    f"{Fore.BLUE+Style.BRIGHT}All Accounts Have Been Processed.{Style.RESET_ALL}",
-                    end="\r"
+                self.clear_terminal()
+                self.welcome()
+                self.log(
+                    f"{Fore.GREEN + Style.BRIGHT}Account's Total: {Style.RESET_ALL}"
+                    f"{Fore.WHITE + Style.BRIGHT}{len(accounts)}{Style.RESET_ALL}"
                 )
-                await asyncio.sleep(1)
-                seconds -= 1
+
+                if use_proxy:
+                    await self.load_proxies(use_proxy_choice)
+                
+                separator = "=" * 25
+                for account in accounts:
+                    if account:
+                        address = self.generate_address(account)
+
+                        self.log(
+                            f"{Fore.CYAN + Style.BRIGHT}{separator}[{Style.RESET_ALL}"
+                            f"{Fore.WHITE + Style.BRIGHT} {self.mask_account(address)} {Style.RESET_ALL}"
+                            f"{Fore.CYAN + Style.BRIGHT}]{separator}{Style.RESET_ALL}"
+                        )
+
+                        if not address:
+                            self.log(
+                                f"{Fore.CYAN + Style.BRIGHT}Status  :{Style.RESET_ALL}"
+                                f"{Fore.RED + Style.BRIGHT} Invalid Private Key or Library Version Not Supported {Style.RESET_ALL}"
+                            )
+                            continue
+
+                        await self.process_accounts(account, address, option, use_proxy)
+                        await asyncio.sleep(3)
+
+                self.log(f"{Fore.CYAN + Style.BRIGHT}={Style.RESET_ALL}"*72)
+                seconds = 24 * 60 * 60
+                while seconds > 0:
+                    formatted_time = self.format_seconds(seconds)
+                    print(
+                        f"{Fore.CYAN+Style.BRIGHT}[ Wait for{Style.RESET_ALL}"
+                        f"{Fore.WHITE+Style.BRIGHT} {formatted_time} {Style.RESET_ALL}"
+                        f"{Fore.CYAN+Style.BRIGHT}... ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE+Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.BLUE+Style.BRIGHT}All Accounts Have Been Processed.{Style.RESET_ALL}",
+                        end="\r"
+                    )
+                    await asyncio.sleep(1)
+                    seconds -= 1
 
         except FileNotFoundError:
             self.log(f"{Fore.RED}File 'accounts.txt' Not Found.{Style.RESET_ALL}")
+            return
         except Exception as e:
             self.log(f"{Fore.RED+Style.BRIGHT}Error: {e}{Style.RESET_ALL}")
             raise e
@@ -467,5 +490,5 @@ if __name__ == "__main__":
         print(
             f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
             f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-            f"{Fore.RED + Style.BRIGHT}[ EXIT ] Gotchipus - BOT{Style.RESET_ALL}"                              
+            f"{Fore.RED + Style.BRIGHT}[ EXIT ] Gotchipus - BOT{Style.RESET_ALL}                                       "                              
         )
