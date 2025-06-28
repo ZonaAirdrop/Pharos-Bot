@@ -43,8 +43,8 @@ class Gotchipus:
             f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}{message}",
             flush=True
         )
-
-        def show_logo():
+        
+       def show_logo():
     logo = """
     \033[36m┌─┐┬ ┬┌┐┌┌─┐┌─┐  ┌─┐┬┌┬┐┌─┐┬─┐┌┬┐┌─┐┬─┐\033[0m
     \033[36m│ ┬│ ││││├┤ ├─┤  │  │ │ │ │├┬┘ │ ├┤ ├┬┘\033[0m
