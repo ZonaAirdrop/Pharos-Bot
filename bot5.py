@@ -46,11 +46,11 @@ class Gotchipus:
 
     def welcome(self):
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
-        print(Fore.GREEN + Style.BRIGHT + "    ⚡Pharos X Gotchipus Tesnet⚡")
+        print(Fore.GREEN + Style.BRIGHT + "    ⚡ Pharos X Gotchipus Tesnet ⚡")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
         print(Fore.YELLOW + Style.BRIGHT + "    Team : Zonaairdrop")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
-        print(Fore.YELLOW + Style.BRIGHT + "   Chanel telegram : @ZonaAirdr0p")
+        print(Fore.RED + Style.BRIGHT + "   Channel telegram : @ZonaAirdr0p")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
         print(Fore.MAGENTA + Style.BRIGHT + "   Powered by Zonaairdrop")
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "═" * 60 + "\n")
