@@ -126,8 +126,8 @@ class PharosTestnet:
         )
 
     def welcome(self):
-       print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
-        print(Fore.GREEN + Style.BRIGHT + "    ⚡ Pharos X Faroswap Tesnet ⚡")
+        print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
+        print(Fore.GREEN + Style.BRIGHT + "    ⚡ Pharos X  Faroswap Zesnet ⚡")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
         print(Fore.YELLOW + Style.BRIGHT + "    Team : Zonaairdrop")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
@@ -136,7 +136,6 @@ class PharosTestnet:
         print(Fore.MAGENTA + Style.BRIGHT + "   Powered by Zonaairdrop")
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "═" * 60 + "\n")
         
-     
     def format_seconds(self, seconds):
         hours, remainder = divmod(seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
