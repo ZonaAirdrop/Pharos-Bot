@@ -1,4 +1,4 @@
-from web3 import Web3
+from from web3 import Web3
 from eth_utils import to_hex
 from eth_abi.abi import encode
 from eth_account import Account
@@ -30,7 +30,8 @@ class PharosTestnet:
         self.USDC_CONTRACT_ADDRESS = "0x72df0bcd7276f2dFbAc900D1CE63c272C4BCcCED"
         self.USDT_CONTRACT_ADDRESS = "0xD4071393f8716661958F766DF660033b3d35fD29"
         self.SWAP_ROUTER_ADDRESS = "0xbc3813206c3cb99347c96a18a757ed39386d12b8"
-        self.POTITION_MANAGER_ADDRESS = "0x7ec504ae0771ec2aa1900f117e609868d0650043"
+        self.POSITION_MANAGER_ADDRESS = "0x7ec504ae0771ec2aa1900f117e609868d0650043"
+
         self.ERC20_CONTRACT_ABI = json.loads('''[
             {"type":"function","name":"balanceOf","stateMutability":"view","inputs":[{"name":"address","type":"address"}],"outputs":[{"name":"","type":"uint256"}]},
             {"type":"function","name":"allowance","stateMutability":"view","inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"outputs":[{"name":"","type":"uint256"}]},
@@ -39,64 +40,121 @@ class PharosTestnet:
             {"type":"function","name":"deposit","stateMutability":"payable","inputs":[],"outputs":[]},
             {"type":"function","name":"withdraw","stateMutability":"nonpayable","inputs":[{"name":"wad","type":"uint256"}],"outputs":[]}
         ]''')
-        self.MINT_CONTRACT_ABI = [
-            {
-                "inputs": [
-                    { "internalType": "address", "name": "_asset", "type": "address" },
-                    { "internalType": "address", "name": "_account", "type": "address" },
-                    { "internalType": "uint256", "name": "_amount", "type": "uint256" }
-                ],
-                "name": "mint",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            }
-        ]
-        self.SWAP_CONTRACT_ABI = [
-            {
-                "inputs": [
-                    {"internalType": "uint256", "name": "deadline", "type": "uint256"},
-                    {"internalType": "bytes[]", "name": "data", "type": "bytes[]"}
-                ],
-                "name": "multicall",
-                "outputs": [],
-                "stateMutability": "payable",
-                "type": "function"
-            }
-        ]
-        self.ADD_LP_CONTRACT_ABI = [
+
+        self.POSITION_MANAGER_ABI = [
             {
                 "inputs": [
                     {
                         "components": [
-                            { "internalType": "address", "name": "token0", "type": "address" },
-                            { "internalType": "address", "name": "token1", "type": "address" },
-                            { "internalType": "uint24", "name": "fee", "type": "uint24" },
-                            { "internalType": "int24", "name": "tickLower", "type": "int24" },
-                            { "internalType": "int24", "name": "tickUpper", "type": "int24" },
-                            { "internalType": "uint256", "name": "amount0Desired", "type": "uint256" },
-                            { "internalType": "uint256", "name": "amount1Desired", "type": "uint256" },
-                            { "internalType": "uint256", "name": "amount0Min", "type": "uint256" },
-                            { "internalType": "uint256", "name": "amount1Min", "type": "uint256" },
-                            { "internalType": "address", "name": "recipient", "type": "address" },
-                            { "internalType": "uint256", "name": "deadline", "type": "uint256" },
+                            {"internalType": "address", "name": "token0", "type": "address"},
+                            {"internalType": "address", "name": "token1", "type": "address"},
+                            {"internalType": "uint24", "name": "fee", "type": "uint24"},
+                            {"internalType": "int24", "name": "tickLower", "type": "int24"},
+                            {"internalType": "int24", "name": "tickUpper", "type": "int24"},
+                            {"internalType": "uint256", "name": "amount0Desired", "type": "uint256"},
+                            {"internalType": "uint256", "name": "amount1Desired", "type": "uint256"},
+                            {"internalType": "uint256", "name": "amount0Min", "type": "uint256"},
+                            {"internalType": "uint256", "name": "amount1Min", "type": "uint256"},
+                            {"internalType": "address", "name": "recipient", "type": "address"},
+                            {"internalType": "uint256", "name": "deadline", "type": "uint256"}
                         ],
                         "internalType": "struct INonfungiblePositionManager.MintParams",
                         "name": "params",
-                        "type": "tuple",
+                        "type": "tuple"
                     }
                 ],
                 "name": "mint",
                 "outputs": [
-                    { "internalType": "uint256", "name": "tokenId", "type": "uint256" },
-                    { "internalType": "uint128", "name": "liquidity", "type": "uint128" },
-                    { "internalType": "uint256", "name": "amount0", "type": "uint256" },
-                    { "internalType": "uint256", "name": "amount1", "type": "uint256" }
+                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
+                    {"internalType": "uint128", "name": "liquidity", "type": "uint128"},
+                    {"internalType": "uint256", "name": "amount0", "type": "uint256"},
+                    {"internalType": "uint256", "name": "amount1", "type": "uint256"}
                 ],
                 "stateMutability": "payable",
                 "type": "function"
             }
         ]
+
+        self.MULTICALL_ABI = [
+            {
+                "inputs": [
+                    {"internalType": "bytes[]", "name": "data", "type": "bytes[]"}
+                ],
+                "name": "multicall",
+                "outputs": [{"internalType": "bytes[]", "name": "results", "type": "bytes[]"}],
+                "stateMutability": "payable",
+                "type": "function"
+            }
+        ]
+        # ... variabel lain tetap sesuai versi Anda ...
+
+    # ... semua fungsi lain pada class tetap, hanya tambahkan/ganti perform_add_liquidity berikut ...
+    async def perform_add_liquidity(self, account: str, address: str, add_lp_option: str, token0: str, token1: str, amount0: float, amount1: float, use_proxy: bool):
+        try:
+            web3 = await self.get_web3_with_check(address, use_proxy)
+
+            # Approve token
+            await self.approving_token(account, address, self.POSITION_MANAGER_ADDRESS, token0, amount0, use_proxy)
+            await self.approving_token(account, address, self.POSITION_MANAGER_ADDRESS, token1, amount1, use_proxy)
+
+            token0_contract = web3.eth.contract(address=web3.to_checksum_address(token0), abi=self.ERC20_CONTRACT_ABI)
+            token0_decimals = token0_contract.functions.decimals().call()
+            amount0_desired = int(amount0 * (10 ** token0_decimals))
+
+            token1_contract = web3.eth.contract(address=web3.to_checksum_address(token1), abi=self.ERC20_CONTRACT_ABI)
+            token1_decimals = token1_contract.functions.decimals().call()
+            amount1_desired = int(amount1 * (10 ** token1_decimals))
+
+            mint_params = {
+                "token0": web3.to_checksum_address(token0),
+                "token1": web3.to_checksum_address(token1),
+                "fee": 500,
+                "tickLower": -887270,
+                "tickUpper": 887270,
+                "amount0Desired": amount0_desired,
+                "amount1Desired": amount1_desired,
+                "amount0Min": 0,
+                "amount1Min": 0,
+                "recipient": web3.to_checksum_address(address),
+                "deadline": int(time.time()) + 600
+            }
+
+            # 1. Encode call mint jadi bytes data
+            pm_contract = web3.eth.contract(address=web3.to_checksum_address(self.POSITION_MANAGER_ADDRESS), abi=self.POSITION_MANAGER_ABI)
+            mint_data = pm_contract.encodeABI(fn_name="mint", args=[mint_params])
+
+            # 2. Panggil multicall pada contract yang sama (POS_MANAGER)
+            multicall_contract = web3.eth.contract(address=web3.to_checksum_address(self.POSITION_MANAGER_ADDRESS), abi=self.MULTICALL_ABI)
+            multicall_tx = multicall_contract.functions.multicall([mint_data])
+
+            estimated_gas = multicall_tx.estimate_gas({"from": address})
+            max_priority_fee = web3.to_wei(1, "gwei")
+            max_fee = max_priority_fee
+
+            tx = multicall_tx.build_transaction({
+                "from": address,
+                "gas": int(estimated_gas * 1.2),
+                "maxFeePerGas": int(max_fee),
+                "maxPriorityFeePerGas": int(max_priority_fee),
+                "nonce": web3.eth.get_transaction_count(address, "pending"),
+                "chainId": web3.eth.chain_id,
+            })
+
+            signed_tx = web3.eth.account.sign_transaction(tx, account)
+            raw_tx = web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            tx_hash = web3.to_hex(raw_tx)
+            receipt = await asyncio.to_thread(web3.eth.wait_for_transaction_receipt, tx_hash, timeout=300)
+            block_number = receipt.blockNumber
+
+            return tx_hash, block_number
+        except Exception as e:
+            self.log(
+                f"{Fore.CYAN+Style.BRIGHT}     Message :{Style.RESET_ALL}"
+                f"{Fore.RED+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
+            )
+            return None, None
+
+    # ... SELURUH BAGIAN LOGIN DAN SEMUA FUNGSI LAIN TETAP PERSIS SESUAI YANG SUDAH ADA ...
         self.ref_code = "8G8MJ3zGB7tJgP"
         self.proxies = []
         self.proxy_index = 0
