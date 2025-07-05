@@ -3,13 +3,11 @@ from eth_utils import to_hex
 from eth_abi.abi import encode
 from eth_account import Account
 from eth_account.messages import encode_defunct
-from aiohttp import ClientSession, ClientTimeout
-from aiohttp_socks import ProxyConnector
-from fake_useragent import FakeUserAgent
 from datetime import datetime
-from colorama import *
-import asyncio, random, secrets, json, time, os, pytz
+from colorama import Fore, Style, init as colorama_init
+import asyncio, random, json, time, os, pytz
 
+colorama_init(autoreset=True)
 wib = pytz.timezone('Asia/Jakarta')
 
 class PharosTestnet:
@@ -24,7 +22,6 @@ class PharosTestnet:
             "Sec-Fetch-Site": "same-site",
             "User-Agent": "Mozilla/5.0"
         }
-        self.BASE_API = "https://api.pharosnetwork.xyz"
         self.RPC_URL = "https://testnet.dplabs-internal.com"
         self.WPHRS_CONTRACT_ADDRESS = "0x76aaaDA469D23216bE5f7C596fA25F282Ff9b364"
         self.USDC_CONTRACT_ADDRESS = "0x72df0bcd7276f2dFbAc900D1CE63c272C4BCcCED"
@@ -176,7 +173,6 @@ class PharosTestnet:
                     return "FAILED"
 
     async def perform_swap(self, privkey, address, from_token, to_token, amount, retries=5):
-        from eth_abi.abi import encode
         web3 = await self.get_web3()
         for attempt in range(retries):
             try:
@@ -265,12 +261,6 @@ class PharosTestnet:
 
     async def bot_loop(self):
         self.welcome()
-        # Konfigurasi jumlah aksi per bagian dan delay (hardcode)
-        wrap_count = 5
-        swap_count = 5
-        addlp_count = 5
-        min_delay = 20
-        max_delay = 40
         if not os.path.exists('accounts.txt'):
             print("File accounts.txt tidak ditemukan!")
             return
@@ -279,7 +269,13 @@ class PharosTestnet:
         while True:
             for priv in accounts:
                 address = self.generate_address(priv)
-                self.log(f"Mulai {self.mask_account(address)}")
+                # Random config setiap akun
+                wrap_count = random.randint(3, 7)
+                swap_count = random.randint(3, 7)
+                addlp_count = random.randint(2, 5)
+                min_delay = random.randint(15, 30)
+                max_delay = random.randint(min_delay+5, min_delay+30)
+                self.log(f"Mulai {self.mask_account(address)} | Unwrap: {wrap_count} | Swap: {swap_count} | Add LP: {addlp_count} | Delay: {min_delay}-{max_delay}s")
                 # === WRAP/UNWRAP ===
                 wrap_sukses = 0
                 for i in range(wrap_count):
@@ -343,4 +339,4 @@ if __name__ == "__main__":
             f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
             f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
             f"{Fore.RED + Style.BRIGHT}[ EXIT ] Pharos Testnet - BOT{Style.RESET_ALL}                                       "                              
-            )
+        )
