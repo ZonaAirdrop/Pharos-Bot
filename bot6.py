@@ -10,7 +10,6 @@ from datetime import datetime
 from colorama import *
 import asyncio, random, secrets, json, time, os, pytz
 
-colorama_init(autoreset=True)
 wib = pytz.timezone('Asia/Jakarta')
 
 class PharosTestnet:
