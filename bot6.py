@@ -41,40 +41,6 @@ class PharosTestnet:
             {"type":"function","name":"withdraw","stateMutability":"nonpayable","inputs":[{"name":"wad","type":"uint256"}],"outputs":[]}
         ]''')
 
-        self.POSITION_MANAGER_ABI = [
-            {
-                "inputs": [
-                    {
-                        "components": [
-                            {"internalType": "address", "name": "token0", "type": "address"},
-                            {"internalType": "address", "name": "token1", "type": "address"},
-                            {"internalType": "uint24", "name": "fee", "type": "uint24"},
-                            {"internalType": "int24", "name": "tickLower", "type": "int24"},
-                            {"internalType": "int24", "name": "tickUpper", "type": "int24"},
-                            {"internalType": "uint256", "name": "amount0Desired", "type": "uint256"},
-                            {"internalType": "uint256", "name": "amount1Desired", "type": "uint256"},
-                            {"internalType": "uint256", "name": "amount0Min", "type": "uint256"},
-                            {"internalType": "uint256", "name": "amount1Min", "type": "uint256"},
-                            {"internalType": "address", "name": "recipient", "type": "address"},
-                            {"internalType": "uint256", "name": "deadline", "type": "uint256"}
-                        ],
-                        "internalType": "struct INonfungiblePositionManager.MintParams",
-                        "name": "params",
-                        "type": "tuple"
-                    }
-                ],
-                "name": "mint",
-                "outputs": [
-                    {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
-                    {"internalType": "uint128", "name": "liquidity", "type": "uint128"},
-                    {"internalType": "uint256", "name": "amount0", "type": "uint256"},
-                    {"internalType": "uint256", "name": "amount1", "type": "uint256"}
-                ],
-                "stateMutability": "payable",
-                "type": "function"
-            }
-        ]
-
         self.MULTICALL_ABI = [
             {
                 "inputs": [
@@ -86,9 +52,61 @@ class PharosTestnet:
                 "type": "function"
             }
         ]
-        # ... variabel lain tetap sesuai versi Anda ...
+        self.POSITION_MANAGER_ABI = [
+            {
+                "inputs": [
+                    {
+                        "components": [
+                            { "internalType": "address", "name": "token0", "type": "address" },
+                            { "internalType": "address", "name": "token1", "type": "address" },
+                            { "internalType": "uint24", "name": "fee", "type": "uint24" },
+                            { "internalType": "int24", "name": "tickLower", "type": "int24" },
+                            { "internalType": "int24", "name": "tickUpper", "type": "int24" },
+                            { "internalType": "uint256", "name": "amount0Desired", "type": "uint256" },
+                            { "internalType": "uint256", "name": "amount1Desired", "type": "uint256" },
+                            { "internalType": "uint256", "name": "amount0Min", "type": "uint256" },
+                            { "internalType": "uint256", "name": "amount1Min", "type": "uint256" },
+                            { "internalType": "address", "name": "recipient", "type": "address" },
+                            { "internalType": "uint256", "name": "deadline", "type": "uint256" },
+                        ],
+                        "internalType": "struct INonfungiblePositionManager.MintParams",
+                        "name": "params",
+                        "type": "tuple",
+                    },
+                ],
+                "name": "mint",
+                "outputs": [
+                    { "internalType": "uint256", "name": "tokenId", "type": "uint256" },
+                    { "internalType": "uint128", "name": "liquidity", "type": "uint128" },
+                    { "internalType": "uint256", "name": "amount0", "type": "uint256" },
+                    { "internalType": "uint256", "name": "amount1", "type": "uint256" },
+                ],
+                "stateMutability": "payable",
+                "type": "function"
+            }
+        ]
 
-    # ... semua fungsi lain pada class tetap, hanya tambahkan/ganti perform_add_liquidity berikut ...
+        self.ref_code = "8G8MJ3zGB7tJgP"
+        self.proxies = []
+        self.proxy_index = 0
+        self.account_proxies = {}
+        self.signatures = {}
+        self.access_tokens = {}
+        self.tx_count = 0
+        self.tx_amount = 0
+        self.wrap_option = None
+        self.wrap_amount = 0
+        self.add_lp_count = 0
+        self.swap_count = 0
+        self.wphrs_amount = 0
+        self.usdc_amount = 0
+        self.usdt_amount = 0
+        self.min_delay = 0
+        self.max_delay = 0
+
+    # ... seluruh fungsi yang Anda miliki tetap, tidak diubah ...
+    # ... ganti hanya fungsi perform_add_liquidity berikut ...
+
     async def perform_add_liquidity(self, account: str, address: str, add_lp_option: str, token0: str, token1: str, amount0: float, amount1: float, use_proxy: bool):
         try:
             web3 = await self.get_web3_with_check(address, use_proxy)
@@ -119,11 +137,9 @@ class PharosTestnet:
                 "deadline": int(time.time()) + 600
             }
 
-            # 1. Encode call mint jadi bytes data
             pm_contract = web3.eth.contract(address=web3.to_checksum_address(self.POSITION_MANAGER_ADDRESS), abi=self.POSITION_MANAGER_ABI)
             mint_data = pm_contract.encodeABI(fn_name="mint", args=[mint_params])
 
-            # 2. Panggil multicall pada contract yang sama (POS_MANAGER)
             multicall_contract = web3.eth.contract(address=web3.to_checksum_address(self.POSITION_MANAGER_ADDRESS), abi=self.MULTICALL_ABI)
             multicall_tx = multicall_contract.functions.multicall([mint_data])
 
@@ -154,35 +170,7 @@ class PharosTestnet:
             )
             return None, None
 
-    # ... SELURUH BAGIAN LOGIN DAN SEMUA FUNGSI LAIN TETAP PERSIS SESUAI YANG SUDAH ADA ...
-        self.ref_code = "8G8MJ3zGB7tJgP"
-        self.proxies = []
-        self.proxy_index = 0
-        self.account_proxies = {}
-        self.signatures = {}
-        self.access_tokens = {}
-        self.tx_count = 0
-        self.tx_amount = 0
-        self.wrap_option = None
-        self.wrap_amount = 0
-        self.add_lp_count = 0
-        self.swap_count = 0
-        self.wphrs_amount = 0
-        self.usdc_amount = 0
-        self.usdt_amount = 0
-        self.min_delay = 0
-        self.max_delay = 0
-
-
-    def clear_terminal(self):
-        os.system('cls' if os.name == 'nt' else 'clear')
-
-    def log(self, message):
-        print(
-            f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-            f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}{message}",
-            flush=True
-        )
+    # ... Seluruh fungsi lain tetap seperti file Anda, tidak diubah ...
 
     def welcome(self):
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
