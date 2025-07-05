@@ -24,6 +24,7 @@ class PharosTestnet:
             "Sec-Fetch-Site": "same-site",
             "User-Agent": FakeUserAgent().random
         }
+        self.BASE_API = "https://api.pharosnetwork.xyz"
         self.RPC_URL = "https://testnet.dplabs-internal.com"
         self.WPHRS_CONTRACT_ADDRESS = "0x76aaaDA469D23216bE5f7C596fA25F282Ff9b364"
         self.USDC_CONTRACT_ADDRESS = "0x72df0bcd7276f2dFbAc900D1CE63c272C4BCcCED"
