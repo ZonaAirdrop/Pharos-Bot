@@ -162,16 +162,6 @@ class PharosTestnet:
             receipt = await asyncio.to_thread(web3.eth.wait_for_transaction_receipt, tx_hash, timeout=300)
             block_number = receipt.blockNumber
 
-            return tx_hash, block_number
-        except Exception as e:
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}     Message :{Style.RESET_ALL}"
-                f"{Fore.RED+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
-            )
-            return None, None
-
-    # ... Seluruh fungsi lain tetap seperti file Anda, tidak diubah ...
-
     def welcome(self):
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
         print(Fore.GREEN + Style.BRIGHT + "    ⚡ Pharos X Zentrafi Tesnet ⚡")
