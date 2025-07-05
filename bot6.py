@@ -162,6 +162,8 @@ class PharosTestnet:
             receipt = await asyncio.to_thread(web3.eth.wait_for_transaction_receipt, tx_hash, timeout=300)
             block_number = receipt.blockNumber
 
+            return tx_hash, block_number
+            
     def welcome(self):
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
         print(Fore.GREEN + Style.BRIGHT + "    ⚡ Pharos X Zentrafi Tesnet ⚡")
