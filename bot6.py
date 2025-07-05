@@ -39,7 +39,64 @@ class PharosTestnet:
             {"type":"function","name":"deposit","stateMutability":"payable","inputs":[],"outputs":[]},
             {"type":"function","name":"withdraw","stateMutability":"nonpayable","inputs":[{"name":"wad","type":"uint256"}],"outputs":[]}
         ]''')
-        
+        self.MINT_CONTRACT_ABI = [
+            {
+                "inputs": [
+                    { "internalType": "address", "name": "_asset", "type": "address" },
+                    { "internalType": "address", "name": "_account", "type": "address" },
+                    { "internalType": "uint256", "name": "_amount", "type": "uint256" }
+                ],
+                "name": "mint",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ]
+        self.SWAP_CONTRACT_ABI = [
+            {
+                "inputs": [
+                    { "internalType": "uint256", "name": "collectionAndSelfcalls", "type": "uint256" },
+                    { "internalType": "bytes[]", "name": "data", "type": "bytes[]" }
+                ],
+                "name": "multicall",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function",
+            }
+        ]
+        self.ADD_LP_CONTRACT_ABI = [
+            {
+                "inputs": [
+                    {
+                        "components": [
+                            { "internalType": "address", "name": "token0", "type": "address" },
+                            { "internalType": "address", "name": "token1", "type": "address" },
+                            { "internalType": "uint24", "name": "fee", "type": "uint24" },
+                            { "internalType": "int24", "name": "tickLower", "type": "int24" },
+                            { "internalType": "int24", "name": "tickUpper", "type": "int24" },
+                            { "internalType": "uint256", "name": "amount0Desired", "type": "uint256" },
+                            { "internalType": "uint256", "name": "amount1Desired", "type": "uint256" },
+                            { "internalType": "uint256", "name": "amount0Min", "type": "uint256" },
+                            { "internalType": "uint256", "name": "amount1Min", "type": "uint256" },
+                            { "internalType": "address", "name": "recipient", "type": "address" },
+                            { "internalType": "uint256", "name": "deadline", "type": "uint256" },
+                        ],
+                        "internalType": "struct INonfungiblePositionManager.MintParams",
+                        "name": "params",
+                        "type": "tuple",
+                    },
+                ],
+                "name": "mint",
+                "outputs": [
+                    { "internalType": "uint256", "name": "tokenId", "type": "uint256" },
+                    { "internalType": "uint128", "name": "liquidity", "type": "uint128" },
+                    { "internalType": "uint256", "name": "amount0", "type": "uint256" },
+                    { "internalType": "uint256", "name": "amount1", "type": "uint256" },
+                ],
+                "stateMutability": "payable",
+                "type": "function",
+            },
+        ]
         self.ref_code = "8G8MJ3zGB7tJgP"
         self.proxies = []
         self.proxy_index = 0
