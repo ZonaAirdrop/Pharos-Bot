@@ -104,9 +104,6 @@ class PharosTestnet:
         self.min_delay = 0
         self.max_delay = 0
 
-    # ... seluruh fungsi yang Anda miliki tetap, tidak diubah ...
-    # ... ganti hanya fungsi perform_add_liquidity berikut ...
-
     async def perform_add_liquidity(self, account: str, address: str, add_lp_option: str, token0: str, token1: str, amount0: float, amount1: float, use_proxy: bool):
         try:
             web3 = await self.get_web3_with_check(address, use_proxy)
@@ -162,8 +159,11 @@ class PharosTestnet:
             receipt = await asyncio.to_thread(web3.eth.wait_for_transaction_receipt, tx_hash, timeout=300)
             block_number = receipt.blockNumber
 
-            return tx_hash, block_number
-            
+            return True, tx_hash, block_number
+
+        except Exception as e:
+            return False, str(e), None
+
     def welcome(self):
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
         print(Fore.GREEN + Style.BRIGHT + "    ⚡ Pharos X Zentrafi Tesnet ⚡")
