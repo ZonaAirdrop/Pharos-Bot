@@ -1,4 +1,4 @@
-from from web3 import Web3
+from web3 import Web3
 from eth_utils import to_hex
 from eth_abi.abi import encode
 from eth_account import Account
