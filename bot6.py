@@ -130,17 +130,10 @@ class PharosTestnet:
             return None
 
     def generate_address(self, account: str):
-        """Fixed to match bot1 implementation using private_key_hex and private_key_bytes"""
+        """Generate address directly from private key like bot1"""
         try:
-            # If account is already a private key hex string, use it directly
-            if account.startswith('0x'):
-                private_key_hex = account
-            else:
-                # Assume it's raw bytes and convert to hex
-                private_key_hex = account if len(account) == 66 else to_hex(bytes.fromhex(account))
-            
-            # Create account from private key hex
-            account_obj = Account.from_key(private_key_hex)
+            # Use the private key directly - account parameter is the private key
+            account_obj = Account.from_key(account)
             address = account_obj.address
             
             return address
@@ -172,16 +165,10 @@ class PharosTestnet:
             return None
 
     def generate_signature(self, account: str):
-        """Generate signature using proper private key handling"""
+        """Generate signature using direct private key like bot1"""
         try:
-            # Convert account to proper private key format if needed
-            if account.startswith('0x'):
-                private_key_hex = account
-            else:
-                private_key_hex = account if len(account) == 66 else to_hex(bytes.fromhex(account))
-            
             encoded_message = encode_defunct(text="pharos")
-            signed_message = Account.sign_message(encoded_message, private_key=private_key_hex)
+            signed_message = Account.sign_message(encoded_message, private_key=account)
             signature = to_hex(signed_message.signature)
 
             return signature
@@ -270,12 +257,6 @@ class PharosTestnet:
         if allowance < amount_wei:
             self.log(f"🔓 Approving token spending...")
             
-            # Convert private key to proper format
-            if privkey.startswith('0x'):
-                private_key_hex = privkey
-            else:
-                private_key_hex = privkey if len(privkey) == 66 else to_hex(bytes.fromhex(privkey))
-            
             tx = contract.functions.approve(spender, 2**256-1).build_transaction({
                 "from": address,
                 "nonce": web3.eth.get_transaction_count(address, "pending"),
@@ -284,7 +265,7 @@ class PharosTestnet:
                 "maxPriorityFeePerGas": web3.to_wei(1, "gwei"),
                 "chainId": web3.eth.chain_id
             })
-            signed = web3.eth.account.sign_transaction(tx, private_key_hex)
+            signed = web3.eth.account.sign_transaction(tx, privkey)
             tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
             
             # Verify approval transaction
@@ -302,12 +283,6 @@ class PharosTestnet:
         web3 = await self.get_web3()
         contract = web3.eth.contract(address=web3.to_checksum_address(self.WPHRS_CONTRACT_ADDRESS), abi=self.ERC20_CONTRACT_ABI)
         amount_wei = web3.to_wei(amount, "ether")
-        
-        # Convert private key to proper format
-        if privkey.startswith('0x'):
-            private_key_hex = privkey
-        else:
-            private_key_hex = privkey if len(privkey) == 66 else to_hex(bytes.fromhex(privkey))
         
         for attempt in range(retries):
             try:
@@ -334,7 +309,7 @@ class PharosTestnet:
                         "chainId": web3.eth.chain_id
                     })
                 
-                signed = web3.eth.account.sign_transaction(tx, private_key_hex)
+                signed = web3.eth.account.sign_transaction(tx, privkey)
                 tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
                 
                 # Verify transaction
@@ -361,19 +336,13 @@ class PharosTestnet:
         """Perform token swap with verification"""
         web3 = await self.get_web3()
         
-        # Convert private key to proper format
-        if privkey.startswith('0x'):
-            private_key_hex = privkey
-        else:
-            private_key_hex = privkey if len(privkey) == 66 else to_hex(bytes.fromhex(privkey))
-        
         for attempt in range(retries):
             try:
                 self.log(f"🔄 Swapping {amount} tokens...")
                 
                 # First approve if needed
                 if from_token != "PHRS":
-                    await self.approving_token(private_key_hex, address, self.SWAP_ROUTER_ADDRESS, from_token, amount)
+                    await self.approving_token(privkey, address, self.SWAP_ROUTER_ADDRESS, from_token, amount)
                 
                 # Build swap transaction
                 contract = web3.eth.contract(address=web3.to_checksum_address(self.SWAP_ROUTER_ADDRESS), abi=self.SWAP_CONTRACT_ABI)
@@ -391,7 +360,7 @@ class PharosTestnet:
                     "chainId": web3.eth.chain_id
                 })
                 
-                signed = web3.eth.account.sign_transaction(tx, private_key_hex)
+                signed = web3.eth.account.sign_transaction(tx, privkey)
                 tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
                 
                 # Verify transaction
@@ -418,21 +387,15 @@ class PharosTestnet:
         """Add liquidity with verification"""
         web3 = await self.get_web3()
         
-        # Convert private key to proper format
-        if privkey.startswith('0x'):
-            private_key_hex = privkey
-        else:
-            private_key_hex = privkey if len(privkey) == 66 else to_hex(bytes.fromhex(privkey))
-        
         for attempt in range(retries):
             try:
                 self.log(f"🔄 Adding liquidity...")
                 
                 # Approve tokens if needed
                 if token0 != "PHRS":
-                    await self.approving_token(private_key_hex, address, self.POSITION_MANAGER_ADDRESS, token0, amount0)
+                    await self.approving_token(privkey, address, self.POSITION_MANAGER_ADDRESS, token0, amount0)
                 if token1 != "PHRS":
-                    await self.approving_token(private_key_hex, address, self.POSITION_MANAGER_ADDRESS, token1, amount1)
+                    await self.approving_token(privkey, address, self.POSITION_MANAGER_ADDRESS, token1, amount1)
                 
                 # Build add liquidity transaction
                 contract = web3.eth.contract(address=web3.to_checksum_address(self.POSITION_MANAGER_ADDRESS), abi=self.ADD_LP_CONTRACT_ABI)
@@ -449,7 +412,7 @@ class PharosTestnet:
                     "chainId": web3.eth.chain_id
                 })
                 
-                signed = web3.eth.account.sign_transaction(tx, private_key_hex)
+                signed = web3.eth.account.sign_transaction(tx, privkey)
                 tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
                 
                 # Verify transaction
