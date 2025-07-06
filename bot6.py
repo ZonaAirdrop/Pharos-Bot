@@ -6,6 +6,7 @@ from eth_account.messages import encode_defunct
 from datetime import datetime
 from colorama import Fore, Style, init as colorama_init
 import asyncio, random, json, time, os, pytz
+from utils import TransactionVerifier
 
 colorama_init(autoreset=True)
 wib = pytz.timezone('Asia/Jakarta')
