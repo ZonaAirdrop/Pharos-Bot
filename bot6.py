@@ -131,7 +131,7 @@ class PharosTestnet:
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
         print(Fore.RED + Style.BRIGHT + "   Channel telegram : @ZonaAirdr0p")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
-        print(Fore.MAGENTA + Style.BRIGHT + "   Enhanced with Transaction Verification")
+        print(Fore.MAGENTA + Style.BRIGHT + "   Powered by Zonaairdrop")
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "═" * 60 + "\n")
 
     def mask_account(self, account):
