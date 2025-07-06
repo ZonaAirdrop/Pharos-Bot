@@ -125,7 +125,7 @@ class PharosTestnet:
 
     def welcome(self):
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
-        print(Fore.GREEN + Style.BRIGHT + "    ⚡ Pharos X Zentrafi Testnet Bot ⚡")
+        print(Fore.GREEN + Style.BRIGHT + "    ⚡ Pharos X Zentrafi Testnet Bot (FIXED) ⚡")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
         print(Fore.YELLOW + Style.BRIGHT + "    Team : Zonaairdrop")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
@@ -594,10 +594,10 @@ class PharosTestnet:
             try:
                 self.log(f"🔄 Starting automation cycle #{cycle}")
                 remaining_time = end_time - time.time()
-                hours = int(remaining_time // 3600)
+                total_hours = int(remaining_time // 3600)
                 minutes = int((remaining_time % 3600) // 60)
                 seconds = int(remaining_time % 60)
-                self.log(f"⏱️ Time remaining: {hours:02d}:{minutes:02d}:{seconds:02d}")
+                self.log(f"⏱️ Time remaining: {total_hours:02d}:{minutes:02d}:{seconds:02d}")
                 
                 # Load accounts
                 with open('accounts.txt', 'r') as f:
@@ -614,13 +614,13 @@ class PharosTestnet:
                 cycle += 1
                 self.log(f"✅ Cycle {cycle-1} completed. Waiting for next cycle...")
                 
-                # Show countdown timer
-                wait_time = 3600  # 1 hour in seconds
-                while wait_time > 0:
-                    hours = wait_time // 3600
+                # Show 24-hour style countdown timer
+                wait_time = 24 * 3600  # 24 hours in seconds
+                while wait_time > 0 and time.time() < end_time:
+                    total_hours = wait_time // 3600
                     minutes = (wait_time % 3600) // 60
                     seconds = wait_time % 60
-                    print(f"\r⏳ Next cycle in: {hours:02d}:{minutes:02d}:{seconds:02d}", end="", flush=True)
+                    print(f"\r⏳ Next cycle in: {total_hours:02d}:{minutes:02d}:{seconds:02d}", end="", flush=True)
                     await asyncio.sleep(1)
                     wait_time -= 1
                 print()  # New line after countdown
