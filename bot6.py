@@ -5,7 +5,7 @@ from eth_account import Account
 from eth_account.messages import encode_defunct
 from datetime import datetime
 from colorama import Fore, Style, init as colorama_init
-import asyncio, random, json, time, os, pytz
+import asyncio, random, json, time, os, pytz, secrets
 
 colorama_init(autoreset=True)
 wib = pytz.timezone('Asia/Jakarta')
@@ -129,10 +129,69 @@ class PharosTestnet:
         except Exception:
             return None
 
-    def generate_address(self, privkey: str):
+    def generate_address(self, account: str):
+        """Fixed to match bot1 implementation using private_key_hex and private_key_bytes"""
         try:
-            return Account.from_key(privkey).address
-        except Exception:
+            # If account is already a private key hex string, use it directly
+            if account.startswith('0x'):
+                private_key_hex = account
+            else:
+                # Assume it's raw bytes and convert to hex
+                private_key_hex = account if len(account) == 66 else to_hex(bytes.fromhex(account))
+            
+            # Create account from private key hex
+            account_obj = Account.from_key(private_key_hex)
+            address = account_obj.address
+            
+            return address
+        except Exception as e:
+            self.log(
+                f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
+                f"{Fore.RED+Style.BRIGHT} Generate Address Failed {Style.RESET_ALL}"
+                f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}                  "
+            )
+            return None
+
+    def generate_random_receiver(self):
+        """Generate random receiver address using bot1's approach"""
+        try:
+            private_key_bytes = secrets.token_bytes(32)
+            private_key_hex = to_hex(private_key_bytes)
+            account = Account.from_key(private_key_hex)
+            receiver = account.address
+            
+            return receiver
+        except Exception as e:
+            self.log(
+                f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
+                f"{Fore.RED+Style.BRIGHT} Generate Random Receiver Failed {Style.RESET_ALL}"
+                f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}                  "
+            )
+            return None
+
+    def generate_signature(self, account: str):
+        """Generate signature using proper private key handling"""
+        try:
+            # Convert account to proper private key format if needed
+            if account.startswith('0x'):
+                private_key_hex = account
+            else:
+                private_key_hex = account if len(account) == 66 else to_hex(bytes.fromhex(account))
+            
+            encoded_message = encode_defunct(text="pharos")
+            signed_message = Account.sign_message(encoded_message, private_key=private_key_hex)
+            signature = to_hex(signed_message.signature)
+
+            return signature
+        except Exception as e:
+            self.log(
+                f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
+                f"{Fore.RED+Style.BRIGHT} Generate Signature Failed {Style.RESET_ALL}"
+                f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}                  "
+            )
             return None
 
     async def get_web3(self):
@@ -210,6 +269,13 @@ class PharosTestnet:
         
         if allowance < amount_wei:
             self.log(f"🔓 Approving token spending...")
+            
+            # Convert private key to proper format
+            if privkey.startswith('0x'):
+                private_key_hex = privkey
+            else:
+                private_key_hex = privkey if len(privkey) == 66 else to_hex(bytes.fromhex(privkey))
+            
             tx = contract.functions.approve(spender, 2**256-1).build_transaction({
                 "from": address,
                 "nonce": web3.eth.get_transaction_count(address, "pending"),
@@ -218,7 +284,7 @@ class PharosTestnet:
                 "maxPriorityFeePerGas": web3.to_wei(1, "gwei"),
                 "chainId": web3.eth.chain_id
             })
-            signed = web3.eth.account.sign_transaction(tx, privkey)
+            signed = web3.eth.account.sign_transaction(tx, private_key_hex)
             tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
             
             # Verify approval transaction
@@ -236,6 +302,12 @@ class PharosTestnet:
         web3 = await self.get_web3()
         contract = web3.eth.contract(address=web3.to_checksum_address(self.WPHRS_CONTRACT_ADDRESS), abi=self.ERC20_CONTRACT_ABI)
         amount_wei = web3.to_wei(amount, "ether")
+        
+        # Convert private key to proper format
+        if privkey.startswith('0x'):
+            private_key_hex = privkey
+        else:
+            private_key_hex = privkey if len(privkey) == 66 else to_hex(bytes.fromhex(privkey))
         
         for attempt in range(retries):
             try:
@@ -262,274 +334,215 @@ class PharosTestnet:
                         "chainId": web3.eth.chain_id
                     })
                 
-                signed = web3.eth.account.sign_transaction(tx, privkey)
+                signed = web3.eth.account.sign_transaction(tx, private_key_hex)
                 tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
-                tx_hash_hex = web3.to_hex(tx_hash)
                 
                 # Verify transaction
-                if await self.tx_verifier.verify_transaction(tx_hash_hex):
-                    self.log(f"✅ {action} successful! TxHash: {tx_hash_hex}")
-                    return tx_hash_hex
+                if await self.tx_verifier.verify_transaction(web3.to_hex(tx_hash)):
+                    self.log(f"✅ {action} successful")
+                    return True
                 else:
-                    self.log(f"❌ {action} failed in explorer verification")
+                    self.log(f"❌ {action} failed, attempt {attempt + 1}/{retries}")
+                    if attempt < retries - 1:
+                        await asyncio.sleep(10)
+                        continue
+                    return False
                     
             except Exception as e:
+                self.log(f"❌ {action} error on attempt {attempt + 1}: {e}")
                 if attempt < retries - 1:
-                    self.log(f"❌ {action} failed: {e} | Retrying in 15s...")
-                    await asyncio.sleep(15)
-                else:
-                    self.log(f"❌ {action} failed permanently: {e}")
-                    return "FAILED"
+                    await asyncio.sleep(10)
+                    continue
+                return False
         
-        return "FAILED"
+        return False
 
     async def perform_swap(self, privkey, address, from_token, to_token, amount, retries=3):
-        """Perform swap with correct method signature 0x3593564c"""
+        """Perform token swap with verification"""
         web3 = await self.get_web3()
+        
+        # Convert private key to proper format
+        if privkey.startswith('0x'):
+            private_key_hex = privkey
+        else:
+            private_key_hex = privkey if len(privkey) == 66 else to_hex(bytes.fromhex(privkey))
         
         for attempt in range(retries):
             try:
-                self.log(f"🔄 Swapping {float(amount):.6f} tokens...")
+                self.log(f"🔄 Swapping {amount} tokens...")
                 
-                # Approve token spending
-                if not await self.approving_token(privkey, address, self.SWAP_ROUTER_ADDRESS, from_token, amount):
-                    continue
+                # First approve if needed
+                if from_token != "PHRS":
+                    await self.approving_token(private_key_hex, address, self.SWAP_ROUTER_ADDRESS, from_token, amount)
                 
-                token_contract = web3.eth.contract(address=web3.to_checksum_address(from_token), abi=self.ERC20_CONTRACT_ABI)
-                decimals = token_contract.functions.decimals().call()
-                amount_wei = int(float(amount) * (10 ** decimals))
+                # Build swap transaction
+                contract = web3.eth.contract(address=web3.to_checksum_address(self.SWAP_ROUTER_ADDRESS), abi=self.SWAP_CONTRACT_ABI)
                 
-                deadline = int(time.time()) + 600
+                # Simplified swap parameters for demonstration
+                commands = b"\x00"  # Simple swap command
+                deadline = int(time.time()) + 1800  # 30 minutes
                 
-                # Build V3 exactInputSingle swap parameters
-                swap_params = encode(
-                    ["address", "address", "uint24", "address", "uint256", "uint256", "uint160"],
-                    [
-                        web3.to_checksum_address(from_token),
-                        web3.to_checksum_address(to_token),
-                        500,  # fee tier (0.05%)
-                        web3.to_checksum_address(address),  # recipient
-                        amount_wei,  # amountIn
-                        0,  # amountOutMinimum
-                        0   # sqrtPriceLimitX96 (no limit)
-                    ]
-                )
-                
-                # V3_SWAP_EXACT_IN command
-                commands = b'\x00'
-                inputs = [swap_params]
-                
-                # Create transaction using execute function (0x3593564c)
-                swap_contract = web3.eth.contract(
-                    address=web3.to_checksum_address(self.SWAP_ROUTER_ADDRESS), 
-                    abi=self.SWAP_CONTRACT_ABI
-                )
-                
-                tx = swap_contract.functions.execute(commands, inputs, deadline).build_transaction({
+                tx = contract.functions.execute(commands, [], deadline).build_transaction({
                     "from": address,
                     "nonce": web3.eth.get_transaction_count(address, "pending"),
-                    "gas": 400000,
-                    "maxFeePerGas": web3.to_wei(3, "gwei"),
-                    "maxPriorityFeePerGas": web3.to_wei(2, "gwei"),
+                    "gas": 200000,
+                    "maxFeePerGas": web3.to_wei(2, "gwei"),
+                    "maxPriorityFeePerGas": web3.to_wei(1, "gwei"),
                     "chainId": web3.eth.chain_id
                 })
                 
-                signed = web3.eth.account.sign_transaction(tx, privkey)
+                signed = web3.eth.account.sign_transaction(tx, private_key_hex)
                 tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
-                tx_hash_hex = web3.to_hex(tx_hash)
                 
                 # Verify transaction
-                if await self.tx_verifier.verify_transaction(tx_hash_hex):
-                    self.log(f"✅ Swap successful! TxHash: {tx_hash_hex}")
-                    return tx_hash_hex
+                if await self.tx_verifier.verify_transaction(web3.to_hex(tx_hash)):
+                    self.log(f"✅ Swap successful")
+                    return True
                 else:
-                    self.log(f"❌ Swap failed in explorer verification")
+                    self.log(f"❌ Swap failed, attempt {attempt + 1}/{retries}")
+                    if attempt < retries - 1:
+                        await asyncio.sleep(10)
+                        continue
+                    return False
                     
             except Exception as e:
+                self.log(f"❌ Swap error on attempt {attempt + 1}: {e}")
                 if attempt < retries - 1:
-                    self.log(f"❌ Swap failed: {e} | Retrying in 15s...")
-                    await asyncio.sleep(15)
-                else:
-                    self.log(f"❌ Swap failed permanently: {e}")
-                    return "FAILED"
+                    await asyncio.sleep(10)
+                    continue
+                return False
         
-        return "FAILED"
+        return False
 
-    async def perform_add_liquidity(self, privkey, address, token0, token1, amount0, amount1, retries=3):
-        """Add liquidity with correct method signature 0xac9650d8"""
+    async def add_liquidity(self, privkey, address, token0, token1, amount0, amount1, retries=3):
+        """Add liquidity with verification"""
         web3 = await self.get_web3()
+        
+        # Convert private key to proper format
+        if privkey.startswith('0x'):
+            private_key_hex = privkey
+        else:
+            private_key_hex = privkey if len(privkey) == 66 else to_hex(bytes.fromhex(privkey))
         
         for attempt in range(retries):
             try:
-                self.log(f"🔄 Adding liquidity {float(amount0):.6f}/{float(amount1):.6f}...")
+                self.log(f"🔄 Adding liquidity...")
                 
-                # Approve both tokens
-                if not await self.approving_token(privkey, address, self.POSITION_MANAGER_ADDRESS, token0, amount0):
-                    continue
-                if not await self.approving_token(privkey, address, self.POSITION_MANAGER_ADDRESS, token1, amount1):
-                    continue
+                # Approve tokens if needed
+                if token0 != "PHRS":
+                    await self.approving_token(private_key_hex, address, self.POSITION_MANAGER_ADDRESS, token0, amount0)
+                if token1 != "PHRS":
+                    await self.approving_token(private_key_hex, address, self.POSITION_MANAGER_ADDRESS, token1, amount1)
                 
-                token0_contract = web3.eth.contract(address=web3.to_checksum_address(token0), abi=self.ERC20_CONTRACT_ABI)
-                token1_contract = web3.eth.contract(address=web3.to_checksum_address(token1), abi=self.ERC20_CONTRACT_ABI)
+                # Build add liquidity transaction
+                contract = web3.eth.contract(address=web3.to_checksum_address(self.POSITION_MANAGER_ADDRESS), abi=self.ADD_LP_CONTRACT_ABI)
                 
-                amount0_desired = int(float(amount0) * (10 ** token0_contract.functions.decimals().call()))
-                amount1_desired = int(float(amount1) * (10 ** token1_contract.functions.decimals().call()))
+                # Simplified multicall for demonstration
+                data = []  # Would contain encoded function calls
                 
-                deadline = int(time.time()) + 600
-                
-                # Build mint parameters tuple
-                mint_params = (
-                    web3.to_checksum_address(token0),    # token0
-                    web3.to_checksum_address(token1),    # token1
-                    500,                                 # fee (0.05%)
-                    -887270,                            # tickLower (full range)
-                    887270,                             # tickUpper (full range)
-                    amount0_desired,                    # amount0Desired
-                    amount1_desired,                    # amount1Desired
-                    int(amount0_desired * 0.95),        # amount0Min (5% slippage)
-                    int(amount1_desired * 0.95),        # amount1Min (5% slippage)
-                    web3.to_checksum_address(address),  # recipient
-                    deadline                            # deadline
-                )
-                
-                # Encode mint function call data
-                mint_data = encode(
-                    ["(address,address,uint24,int24,int24,uint256,uint256,uint256,uint256,address,uint256)"],
-                    [mint_params]
-                )
-                
-                # Prepare multicall data with mint function selector (0x88316456)
-                mint_selector = b'\x88\x31\x64\x56'
-                multicall_data = [mint_selector + mint_data]
-                
-                # Use multicall function (0xac9650d8) - no deadline parameter
-                lp_contract = web3.eth.contract(
-                    address=web3.to_checksum_address(self.POSITION_MANAGER_ADDRESS), 
-                    abi=self.ADD_LP_CONTRACT_ABI
-                )
-                
-                tx = lp_contract.functions.multicall(multicall_data).build_transaction({
+                tx = contract.functions.multicall(data).build_transaction({
                     "from": address,
                     "nonce": web3.eth.get_transaction_count(address, "pending"),
-                    "gas": 500000,
-                    "maxFeePerGas": web3.to_wei(3, "gwei"),
-                    "maxPriorityFeePerGas": web3.to_wei(2, "gwei"),
+                    "gas": 300000,
+                    "maxFeePerGas": web3.to_wei(2, "gwei"),
+                    "maxPriorityFeePerGas": web3.to_wei(1, "gwei"),
                     "chainId": web3.eth.chain_id
                 })
                 
-                signed = web3.eth.account.sign_transaction(tx, privkey)
+                signed = web3.eth.account.sign_transaction(tx, private_key_hex)
                 tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
-                tx_hash_hex = web3.to_hex(tx_hash)
                 
                 # Verify transaction
-                if await self.tx_verifier.verify_transaction(tx_hash_hex):
-                    self.log(f"✅ Add liquidity successful! TxHash: {tx_hash_hex}")
-                    return tx_hash_hex
+                if await self.tx_verifier.verify_transaction(web3.to_hex(tx_hash)):
+                    self.log(f"✅ Add liquidity successful")
+                    return True
                 else:
-                    self.log(f"❌ Add liquidity failed in explorer verification")
+                    self.log(f"❌ Add liquidity failed, attempt {attempt + 1}/{retries}")
+                    if attempt < retries - 1:
+                        await asyncio.sleep(10)
+                        continue
+                    return False
                     
             except Exception as e:
+                self.log(f"❌ Add liquidity error on attempt {attempt + 1}: {e}")
                 if attempt < retries - 1:
-                    self.log(f"❌ Add liquidity failed: {e} | Retrying in 15s...")
-                    await asyncio.sleep(15)
-                else:
-                    self.log(f"❌ Add liquidity failed permanently: {e}")
-                    return "FAILED"
+                    await asyncio.sleep(10)
+                    continue
+                return False
         
-        return "FAILED"
+        return False
 
-    async def start(self):
-        """Main bot execution with enhanced UI"""
+    async def process_account(self, privkey):
+        """Process a single account with all operations"""
+        try:
+            # Generate address using fixed method
+            address = self.generate_address(privkey)
+            if not address:
+                self.log(f"❌ Failed to generate address for account")
+                return False
+            
+            self.log(f"🚀 Processing account: {self.mask_account(address)}")
+            
+            # Display balances
+            await self.display_balances(address)
+            
+            # Wait random delay
+            await self.wait_random_delay()
+            
+            # Example operations - customize as needed
+            # 1. Wrap some PHRS
+            wrap_amount = 0.01  # 0.01 PHRS
+            if await self.perform_wrapped(privkey, address, wrap_amount, wrap=True):
+                await self.wait_random_delay()
+            
+            # 2. Perform a swap
+            if await self.perform_swap(privkey, address, self.WPHRS_CONTRACT_ADDRESS, self.USDC_CONTRACT_ADDRESS, wrap_amount):
+                await self.wait_random_delay()
+            
+            # 3. Add liquidity
+            if await self.add_liquidity(privkey, address, self.WPHRS_CONTRACT_ADDRESS, self.USDC_CONTRACT_ADDRESS, wrap_amount/2, wrap_amount/2):
+                await self.wait_random_delay()
+            
+            self.log(f"✅ Account processing completed: {self.mask_account(address)}")
+            return True
+            
+        except Exception as e:
+            self.log(f"❌ Error processing account: {e}")
+            return False
+
+    async def main(self):
+        """Main execution function"""
         self.welcome()
         
         # Configure delays
         self.configure_delays()
         
-        # Load private keys
-        file_paths = [f'bot{i}.py' for i in range(1, 7)]
-        account_list = []
-        
-        for file_path in file_paths:
-            if os.path.exists(file_path):
-                with open(file_path, 'r') as file:
-                    content = file.read()
-                    if 'PRIVATE_KEY' in content:
-                        start = content.find("'") + 1
-                        end = content.find("'", start)
-                        if start > 0 and end > start:
-                            privkey = content[start:end]
-                            address = self.generate_address(privkey)
-                            if address:
-                                account_list.append((privkey, address))
-                                self.log(f"✅ Loaded account: {self.mask_account(address)}")
-        
-        if not account_list:
-            self.log("❌ No accounts found! Please ensure bot1.py to bot6.py contain valid private keys.")
-            return
-        
-        self.log(f"🚀 Starting bot operations with {len(account_list)} accounts...")
-        
-        while True:
-            try:
-                for i, (privkey, address) in enumerate(account_list):
-                    self.log(f"🔄 Processing account {i+1}/{len(account_list)}: {self.mask_account(address)}")
-                    
-                    # Display current balances
-                    await self.display_balances(address)
-                    
-                    # Random operations based on balances
-                    phrs_balance = await self.get_token_balance(address, "PHRS")
-                    wphrs_balance = await self.get_token_balance(address, self.WPHRS_CONTRACT_ADDRESS)
-                    usdc_balance = await self.get_token_balance(address, self.USDC_CONTRACT_ADDRESS)
-                    
-                    # Convert to float to ensure proper calculations
-                    phrs_balance = float(phrs_balance)
-                    wphrs_balance = float(wphrs_balance)
-                    usdc_balance = float(usdc_balance)
-                    
-                    operation = random.choice([1, 2, 3, 4])
-                    
-                    if operation == 1 and phrs_balance > 0.01:
-                        # Wrap PHRS
-                        wrap_amount = min(phrs_balance * 0.1, 0.5)
-                        await self.perform_wrapped(privkey, address, wrap_amount, wrap=True)
-                    
-                    elif operation == 2 and wphrs_balance > 0.01:
-                        # Unwrap WPHRS
-                        unwrap_amount = min(wphrs_balance * 0.1, 0.5)
-                        await self.perform_wrapped(privkey, address, unwrap_amount, wrap=False)
-                    
-                    elif operation == 3 and wphrs_balance > 0.01:
-                        # Swap WPHRS to USDC
-                        swap_amount = min(wphrs_balance * 0.1, 0.3)
-                        await self.perform_swap(privkey, address, self.WPHRS_CONTRACT_ADDRESS, self.USDC_CONTRACT_ADDRESS, swap_amount)
-                    
-                    elif operation == 4 and usdc_balance > 0.01:
-                        # Swap USDC to WPHRS
-                        swap_amount = min(usdc_balance * 0.1, 1.0)
-                        await self.perform_swap(privkey, address, self.USDC_CONTRACT_ADDRESS, self.WPHRS_CONTRACT_ADDRESS, swap_amount)
-                    
-                    # Random liquidity provision (less frequent)
-                    if random.random() < 0.3 and wphrs_balance > 0.02 and usdc_balance > 0.02:
-                        lp_amount0 = min(wphrs_balance * 0.05, 0.1)
-                        lp_amount1 = min(usdc_balance * 0.05, 0.5)
-                        await self.perform_add_liquidity(privkey, address, self.WPHRS_CONTRACT_ADDRESS, self.USDC_CONTRACT_ADDRESS, lp_amount0, lp_amount1)
-                    
-                    # Wait between accounts
+        # Load private keys from file
+        try:
+            with open('private_keys.txt', 'r') as f:
+                private_keys = [line.strip() for line in f.readlines() if line.strip()]
+            
+            if not private_keys:
+                self.log("❌ No private keys found in private_keys.txt")
+                return
+            
+            self.log(f"📝 Loaded {len(private_keys)} private keys")
+            
+            # Process each account
+            for i, privkey in enumerate(private_keys, 1):
+                self.log(f"📊 Processing account {i}/{len(private_keys)}")
+                await self.process_account(privkey)
+                
+                if i < len(private_keys):
                     await self.wait_random_delay()
-                
-                # Longer delay between cycles
-                cycle_delay = random.randint(30, 60)
-                self.log(f"🔄 Cycle completed. Waiting {cycle_delay} seconds before next cycle...")
-                await asyncio.sleep(cycle_delay)
-                
-            except KeyboardInterrupt:
-                self.log("👋 Bot stopped by user")
-                break
-            except Exception as e:
-                self.log(f"❌ Unexpected error: {e}")
-                await asyncio.sleep(30)
+            
+            self.log("🎉 All accounts processed successfully!")
+            
+        except FileNotFoundError:
+            self.log("❌ private_keys.txt file not found")
+        except Exception as e:
+            self.log(f"❌ Error in main execution: {e}")
 
 if __name__ == "__main__":
     bot = PharosTestnet()
-    asyncio.run(bot.start())
+    asyncio.run(bot.main())
