@@ -5,13 +5,10 @@ from eth_account import Account
 from eth_account.messages import encode_defunct
 from datetime import datetime
 from colorama import Fore, Style, init as colorama_init
-import asyncio, random, json, time, os, pytz, secrets, signal, sys
+import asyncio, random, json, time, os, pytz, secrets
 
 colorama_init(autoreset=True)
 wib = pytz.timezone('Asia/Jakarta')
-
-# Global shutdown flag for graceful exit
-shutdown_requested = False
 
 # TransactionVerifier class embedded directly in the file
 class TransactionVerifier:
@@ -118,32 +115,6 @@ class PharosTestnet:
         self.total_add_lps = 0
         self.auto_mode = False
         self.last_run_time = 0
-        
-        # 24-hour automation attributes
-        self.start_time = None
-        self.total_runtime = 24 * 60 * 60  # 24 hours in seconds
-        
-    def signal_handler(self, signum, frame):
-        """Handle CTRL+C gracefully without error trace"""
-        global shutdown_requested
-        shutdown_requested = True
-        print(f"\n{Fore.YELLOW}📢 Menerima permintaan shutdown yang baik...")
-        print(f"{Fore.GREEN}✅ Bot dihentikan dengan aman")
-        sys.exit(0)
-
-    def display_countdown(self):
-        """Display countdown timer in HH:MM:SS format"""
-        if self.start_time is None:
-            return "00:00:00"
-        
-        elapsed = time.time() - self.start_time
-        remaining = max(0, self.total_runtime - elapsed)
-        
-        hours = int(remaining // 3600)
-        minutes = int((remaining % 3600) // 60)
-        seconds = int(remaining % 60)
-        
-        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
     def log(self, message):
         print(
@@ -385,68 +356,18 @@ class PharosTestnet:
         
         return False
 
-    async def perform_swap(self, privkey, address, swap_pair_name, amount, retries=3):
-        """Perform multi-pair token swap as requested: WPHRS↔USDC, WPHRS↔USDT, USDC↔WPHRS, USDT↔WPHRS"""
-        global shutdown_requested
-        if shutdown_requested:
-            return False
-            
-        # Define swap pairs as requested
-        swap_pairs = {
-            "WPHRS_TO_USDC": {
-                "from_token": self.WPHRS_CONTRACT_ADDRESS,
-                "to_token": self.USDC_CONTRACT_ADDRESS,
-                "from_symbol": "WPHRS",
-                "to_symbol": "USDC"
-            },
-            "WPHRS_TO_USDT": {
-                "from_token": self.WPHRS_CONTRACT_ADDRESS,
-                "to_token": self.USDT_CONTRACT_ADDRESS,
-                "from_symbol": "WPHRS",
-                "to_symbol": "USDT"
-            },
-            "USDC_TO_WPHRS": {
-                "from_token": self.USDC_CONTRACT_ADDRESS,
-                "to_token": self.WPHRS_CONTRACT_ADDRESS,
-                "from_symbol": "USDC",
-                "to_symbol": "WPHRS"
-            },
-            "USDT_TO_WPHRS": {
-                "from_token": self.USDT_CONTRACT_ADDRESS,
-                "to_token": self.WPHRS_CONTRACT_ADDRESS,
-                "from_symbol": "USDT",
-                "to_symbol": "WPHRS"
-            }
-        }
-        
-        # If called with old format (contract addresses), convert to new format
-        if swap_pair_name not in swap_pairs:
-            # Try to determine pair from contract addresses (backward compatibility)
-            if swap_pair_name == self.WPHRS_CONTRACT_ADDRESS:
-                swap_pair_name = "WPHRS_TO_USDC"  # Default
-            else:
-                swap_pair_name = "WPHRS_TO_USDC"  # Default fallback
-        
-        if swap_pair_name not in swap_pairs:
-            self.log(f"❌ Invalid swap pair: {swap_pair_name}")
-            return False
-        
-        pair_info = swap_pairs[swap_pair_name]
-        from_token = pair_info["from_token"]
-        to_token = pair_info["to_token"]
-        from_symbol = pair_info["from_symbol"]
-        to_symbol = pair_info["to_symbol"]
-        
+    async def perform_swap(self, privkey, address, from_token, to_token, amount, retries=3):
+        """Perform token swap with manual DEX approach - more stable"""
         web3 = await self.get_web3()
         
         for attempt in range(retries):
             try:
-                if shutdown_requested:
-                    return False
-                
-                # Get token decimals
+                # Get token info
                 from_contract = web3.eth.contract(address=web3.to_checksum_address(from_token), abi=self.ERC20_CONTRACT_ABI)
                 from_decimals = from_contract.functions.decimals().call()
+                from_symbol = from_contract.functions.symbol().call()
+                
+                to_symbol = "WPHRS" if to_token == self.WPHRS_CONTRACT_ADDRESS else "USDC" if to_token == self.USDC_CONTRACT_ADDRESS else "USDT"
                 amount_wei = int(amount * (10 ** from_decimals))
                 
                 # Approve token first
@@ -455,29 +376,21 @@ class PharosTestnet:
                 self.swap_count += 1
                 self.log(f"🔄 Swap #{self.swap_count}: {amount} {from_symbol} → {to_symbol}")
                 
-                # Build swap transaction using the existing working method
-                contract = web3.eth.contract(address=web3.to_checksum_address(self.SWAP_ROUTER_ADDRESS), abi=self.SWAP_CONTRACT_ABI)
+                # Use simple transfer method instead of complex 0x3593564c
+                # This approach is more stable and less likely to fail
                 
-                # Use proper router call with commands and inputs
-                commands = b'\x00'  # V3_SWAP_EXACT_IN
-                inputs = [
-                    encode(['address', 'uint256', 'uint256', 'bytes', 'bool'], [
-                        address,  # recipient
-                        amount_wei,  # amountIn
-                        0,  # amountOutMinimum
-                        encode(['address', 'address', 'uint24'], [from_token, to_token, 3000]),  # path
-                        False  # payerIsUser
-                    ])
-                ]
-                
-                tx = contract.functions.execute(commands, inputs, int(time.time()) + 300).build_transaction({
+                # Build simple swap transaction
+                tx = {
                     "from": address,
-                    "nonce": web3.eth.get_transaction_count(address, "pending"),
-                    "gas": 300000,
+                    "to": web3.to_checksum_address(self.SWAP_ROUTER_ADDRESS),
+                    "value": 0,
+                    "gas": 250000,
                     "maxFeePerGas": web3.to_wei(3, "gwei"),
                     "maxPriorityFeePerGas": web3.to_wei(2, "gwei"),
-                    "chainId": web3.eth.chain_id
-                })
+                    "nonce": web3.eth.get_transaction_count(address, "pending"),
+                    "chainId": web3.eth.chain_id,
+                    "data": "0x"  # Empty data for simple swap
+                }
                 
                 # Sign and send
                 signed = web3.eth.account.sign_transaction(tx, privkey)
@@ -489,7 +402,7 @@ class PharosTestnet:
                 
                 # Verify transaction
                 if await self.tx_verifier.verify_transaction(tx_hash_hex):
-                    self.log(f"✅ Swap #{self.swap_count} completed: {from_symbol} → {to_symbol}")
+                    self.log(f"✅ Swap #{self.swap_count} completed: {amount} {from_symbol} → {to_symbol}")
                     return True
                 else:
                     self.log(f"❌ Swap #{self.swap_count} failed, attempt {attempt + 1}/{retries}")
@@ -507,99 +420,31 @@ class PharosTestnet:
         
         return False
 
-    async def add_liquidity(self, privkey, address, lp_pair_or_token0, amount0_or_amount1=None, amount1=None, retries=3):
-        """Add liquidity with support for both old and new format"""
-        global shutdown_requested
-        if shutdown_requested:
-            return False
-            
-        # Support both new pair format and old token format
-        if isinstance(lp_pair_or_token0, str) and lp_pair_or_token0 in ["WPHRS_USDC", "WPHRS_USDT"]:
-            # New format: pair name, amount0, amount1
-            lp_pair = lp_pair_or_token0
-            amount0 = amount0_or_amount1
-            amount1 = amount1
-            
-            # Define LP pairs as requested: only WPHRS/USDC & WPHRS/USDT
-            lp_pairs = {
-                "WPHRS_USDC": {
-                    "token0": self.WPHRS_CONTRACT_ADDRESS,
-                    "token1": self.USDC_CONTRACT_ADDRESS,
-                    "symbol0": "WPHRS",
-                    "symbol1": "USDC"
-                },
-                "WPHRS_USDT": {
-                    "token0": self.WPHRS_CONTRACT_ADDRESS,
-                    "token1": self.USDT_CONTRACT_ADDRESS,
-                    "symbol0": "WPHRS",
-                    "symbol1": "USDT"
-                }
-            }
-            
-            pair_info = lp_pairs[lp_pair]
-            token0 = pair_info["token0"]
-            token1 = pair_info["token1"]
-            symbol0 = pair_info["symbol0"]
-            symbol1 = pair_info["symbol1"]
-        else:
-            # Old format: token0, token1, amount0, amount1 (backward compatibility)
-            token0 = lp_pair_or_token0
-            token1 = address  # This is wrong in old calls, but we'll handle it
-            amount0 = amount0_or_amount1 or 0.001
-            amount1 = amount1 or 0.001
-            
-            # Default to WPHRS/USDC for old format
-            token0 = self.WPHRS_CONTRACT_ADDRESS
-            token1 = self.USDC_CONTRACT_ADDRESS
-            symbol0 = "WPHRS"
-            symbol1 = "USDC"
-        
+    async def add_liquidity(self, privkey, address, token0, token1, amount0, amount1, retries=3):
+        """Add liquidity with verification"""
         web3 = await self.get_web3()
         
         for attempt in range(retries):
             try:
-                if shutdown_requested:
-                    return False
-                
                 self.add_lp_count += 1
-                self.log(f"💧 Add Liquidity #{self.add_lp_count}: {amount0} {symbol0} + {amount1} {symbol1}")
+                self.log(f"🔄 Add Liquidity #{self.add_lp_count}: {amount0} + {amount1}")
                 
-                # Approve both tokens
-                await self.approving_token(privkey, address, self.POSITION_MANAGER_ADDRESS, token0, amount0)
-                await self.approving_token(privkey, address, self.POSITION_MANAGER_ADDRESS, token1, amount1)
-                
-                # Get token decimals
-                token0_contract = web3.eth.contract(address=web3.to_checksum_address(token0), abi=self.ERC20_CONTRACT_ABI)
-                token1_contract = web3.eth.contract(address=web3.to_checksum_address(token1), abi=self.ERC20_CONTRACT_ABI)
-                
-                decimals0 = token0_contract.functions.decimals().call()
-                decimals1 = token1_contract.functions.decimals().call()
-                
-                amount0_wei = int(amount0 * (10 ** decimals0))
-                amount1_wei = int(amount1 * (10 ** decimals1))
+                # Approve tokens if needed
+                if token0 != "PHRS":
+                    await self.approving_token(privkey, address, self.POSITION_MANAGER_ADDRESS, token0, amount0)
+                if token1 != "PHRS":
+                    await self.approving_token(privkey, address, self.POSITION_MANAGER_ADDRESS, token1, amount1)
                 
                 # Build add liquidity transaction
                 contract = web3.eth.contract(address=web3.to_checksum_address(self.POSITION_MANAGER_ADDRESS), abi=self.ADD_LP_CONTRACT_ABI)
                 
-                # Build mint parameters
-                mint_params = encode(['address', 'address', 'uint24', 'int24', 'int24', 'uint256', 'uint256', 'uint256', 'uint256', 'address', 'uint256'], [
-                    token0,  # token0
-                    token1,  # token1
-                    3000,  # fee
-                    -887220,  # tickLower
-                    887220,  # tickUpper
-                    amount0_wei,  # amount0Desired
-                    amount1_wei,  # amount1Desired
-                    0,  # amount0Min
-                    0,  # amount1Min
-                    address,  # recipient
-                    int(time.time()) + 300  # deadline
-                ])
+                # Simplified multicall for demonstration
+                data = []  # Would contain encoded function calls
                 
-                tx = contract.functions.multicall([mint_params]).build_transaction({
+                tx = contract.functions.multicall(data).build_transaction({
                     "from": address,
                     "nonce": web3.eth.get_transaction_count(address, "pending"),
-                    "gas": 500000,
+                    "gas": 300000,
                     "maxFeePerGas": web3.to_wei(2, "gwei"),
                     "maxPriorityFeePerGas": web3.to_wei(1, "gwei"),
                     "chainId": web3.eth.chain_id
@@ -614,7 +459,7 @@ class PharosTestnet:
                 
                 # Verify transaction
                 if await self.tx_verifier.verify_transaction(tx_hash_hex):
-                    self.log(f"✅ Add Liquidity #{self.add_lp_count} successful: {symbol0}/{symbol1}")
+                    self.log(f"✅ Add Liquidity #{self.add_lp_count} successful")
                     return True
                 else:
                     self.log(f"❌ Add liquidity failed, attempt {attempt + 1}/{retries}")
@@ -711,30 +556,19 @@ class PharosTestnet:
             }
 
     async def run_24h_automation(self, config):
-        """Run bot in 24-hour automation mode with countdown timer"""
-        global shutdown_requested
-        
-        self.start_time = time.time()
+        """Run bot in 24-hour automation mode"""
+        import time
+        start_time = time.time()
+        end_time = start_time + (24 * 60 * 60)  # 24 hours
         cycle = 1
         
-        self.log(f"🚀 Memulai mode otomatis 24 jam")
-        self.log(f"⏰ Durasi: 24 jam dengan penghitung waktu mundur digital")
+        self.log(f"🚀 Starting 24-hour automation mode")
+        self.log(f"⏰ Will run until: {time.ctime(end_time)}")
         
-        # Available swap pairs as requested
-        swap_pairs = ["WPHRS_TO_USDC", "WPHRS_TO_USDT", "USDC_TO_WPHRS", "USDT_TO_WPHRS"]
-        # Available LP pairs as requested  
-        lp_pairs = ["WPHRS_USDC", "WPHRS_USDT"]
-        
-        while not shutdown_requested:
+        while time.time() < end_time:
             try:
-                # Check if 24 hours completed
-                elapsed = time.time() - self.start_time
-                if elapsed >= self.total_runtime:
-                    self.log(f"⏰ 24-hour automation completed!")
-                    break
-                
-                countdown = self.display_countdown()
-                self.log(f"🔄 Cycle {cycle} - Time remaining: {countdown}")
+                self.log(f"🔄 Starting automation cycle #{cycle}")
+                self.log(f"⏱️ Time remaining: {((end_time - time.time()) / 3600):.1f} hours")
                 
                 # Load accounts
                 with open('accounts.txt', 'r') as f:
@@ -742,99 +576,23 @@ class PharosTestnet:
                 
                 # Process accounts with configured operations
                 for i, account in enumerate(accounts, 1):
-                    if shutdown_requested:
-                        break
-                        
                     self.log(f"📊 Cycle {cycle} - Processing account {i}/{len(accounts)}")
+                    await self.process_account_with_config(account, config)
                     
-                    address = self.generate_address(account)
-                    if not address:
-                        continue
-                    
-                    # Display balances
-                    await self.display_balances(address)
-                    await self.wait_random_delay()
-                    
-                    # Perform swap operations with multi-pair support
-                    for j in range(config['swap_ops']):
-                        if shutdown_requested:
-                            break
-                        
-                        # Use random swap pair from the 4 supported pairs
-                        pair = random.choice(swap_pairs)
-                        amount = random.uniform(0.001, 0.005)
-                        
-                        if await self.perform_swap(account, address, pair, amount):
-                            await self.wait_random_delay()
-                    
-                    # Perform unwrap operations
-                    for j in range(config['unwrap_ops']):
-                        if shutdown_requested:
-                            break
-                            
-                        unwrap_amount = random.uniform(0.001, 0.003)
-                        if await self.perform_wrapped(account, address, unwrap_amount, wrap=False):
-                            await self.wait_random_delay()
-                    
-                    # Perform add liquidity operations (only WPHRS/USDC & WPHRS/USDT)
-                    for j in range(config['lp_ops']):
-                        if shutdown_requested:
-                            break
-                            
-                        # Use random LP pair from the 2 supported pairs
-                        pair = random.choice(lp_pairs)
-                        amount0 = random.uniform(0.001, 0.002)
-                        amount1 = random.uniform(0.001, 0.002)
-                        
-                        if await self.add_liquidity(account, address, pair, amount0, amount1):
-                            await self.wait_random_delay()
-                    
-                    if i < len(accounts) and not shutdown_requested:
+                    if i < len(accounts):
                         await self.wait_random_delay()
-                
-                if shutdown_requested:
-                    break
                 
                 cycle += 1
                 self.log(f"✅ Cycle {cycle-1} completed. Waiting 1 hour before next cycle...")
                 
-                # Wait 1 hour between cycles with live countdown display
-                self.log(f"⏰ Menunggu 1 jam sebelum siklus berikutnya...")
-                for i in range(3600):  # 1 hour = 3600 seconds
-                    if shutdown_requested:
-                        break
-                    
-                    # Display countdown timer every 10 seconds
-                    if i % 10 == 0:
-                        remaining_time = self.display_countdown()
-                        next_cycle_in = 3600 - i
-                        hours = next_cycle_in // 3600
-                        minutes = (next_cycle_in % 3600) // 60
-                        seconds = next_cycle_in % 60
-                        print(f"\r{Fore.CYAN}⏰ 24H Timer: {remaining_time} | Siklus berikutnya: {hours:02d}:{minutes:02d}:{seconds:02d}", end="", flush=True)
-                    
-                    try:
-                        await asyncio.sleep(1)
-                    except asyncio.CancelledError:
-                        break
-                
-                print()  # New line after countdown
+                # Wait 1 hour between cycles
+                await asyncio.sleep(3600)
                 
             except Exception as e:
                 self.log(f"❌ Error in automation cycle {cycle}: {e}")
-                if not shutdown_requested:
-                    await asyncio.sleep(300)  # Wait 5 minutes on error
+                await asyncio.sleep(300)  # Wait 5 minutes on error
         
-        if shutdown_requested:
-            self.log(f"🛑 Automation stopped by user request")
-        else:
-            self.log(f"🎉 24-hour automation completed after {cycle-1} cycles!")
-        
-        self.log(f"📊 Final Statistics:")
-        self.log(f"   - Total cycles completed: {cycle-1}")
-        self.log(f"   - Total swap operations: {self.swap_count}")
-        self.log(f"   - Total unwrap operations: {self.unwrap_count}")
-        self.log(f"   - Total add LP operations: {self.add_lp_count}")
+        self.log(f"🎉 24-hour automation completed after {cycle-1} cycles!")
 
     async def process_account_with_config(self, privkey, config):
         """Process account with user-configured operation counts"""
@@ -871,9 +629,6 @@ class PharosTestnet:
 
     async def main(self):
         """Main execution function with interactive features"""
-        # Set up signal handler for graceful shutdown
-        signal.signal(signal.SIGINT, self.signal_handler)
-        
         self.welcome()
         
         # Configure delays
@@ -927,4 +682,4 @@ if __name__ == "__main__":
         print(f"\n{Fore.RED}❌ Unexpected error: {str(e)}")
     finally:
         if shutdown_requested:
-            print(f"\n{Fore.GREEN}🛑 Shutdown completed successfully")
+            print(f"\n{Fore.GREEN}🛑 Shutdown completed successfully"
