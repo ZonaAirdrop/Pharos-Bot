@@ -6,10 +6,39 @@ from eth_account.messages import encode_defunct
 from datetime import datetime
 from colorama import Fore, Style, init as colorama_init
 import asyncio, random, json, time, os, pytz
-from utils import TransactionVerifier
 
 colorama_init(autoreset=True)
 wib = pytz.timezone('Asia/Jakarta')
+
+# TransactionVerifier class embedded directly in the file
+class TransactionVerifier:
+    def __init__(self, rpc_url):
+        self.rpc_url = rpc_url
+        self.web3 = Web3(Web3.HTTPProvider(rpc_url))
+    
+    async def verify_transaction(self, tx_hash, max_wait_time=120, check_interval=5):
+        start_time = time.time()
+        
+        while time.time() - start_time < max_wait_time:
+            try:
+                receipt = self.web3.eth.get_transaction_receipt(tx_hash)
+                
+                if receipt:
+                    if receipt.status == 1:
+                        print(f"{Fore.GREEN}✅ Transaction verified: {tx_hash}")
+                        return True
+                    else:
+                        print(f"{Fore.RED}❌ Transaction failed: {tx_hash}")
+                        return False
+                
+            except Exception as e:
+                if "not found" not in str(e).lower():
+                    print(f"{Fore.YELLOW}⚠️ Error checking transaction: {e}")
+            
+            await asyncio.sleep(check_interval)
+        
+        print(f"{Fore.RED}❌ Transaction verification timeout: {tx_hash}")
+        return False
 
 class PharosTestnet:
     def __init__(self) -> None:
