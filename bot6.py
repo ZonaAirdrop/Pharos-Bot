@@ -376,21 +376,59 @@ class PharosTestnet:
                 self.swap_count += 1
                 self.log(f"🔄 Swap #{self.swap_count}: {amount} {from_symbol} → {to_symbol}")
                 
-                # Use simple transfer method instead of complex 0x3593564c
-                # This approach is more stable and less likely to fail
+                # Use swap router contract with proper method call
+                router_abi = [
+                    {
+                        "inputs": [
+                            {"internalType": "bytes", "name": "commands", "type": "bytes"},
+                            {"internalType": "bytes[]", "name": "inputs", "type": "bytes[]"}
+                        ],
+                        "name": "execute",
+                        "outputs": [],
+                        "stateMutability": "payable",
+                        "type": "function"
+                    }
+                ]
                 
-                # Build simple swap transaction
-                tx = {
+                # Create contract instance
+                router_contract = web3.eth.contract(
+                    address=web3.to_checksum_address(self.SWAP_ROUTER_ADDRESS),
+                    abi=router_abi
+                )
+                
+                deadline = int(time.time()) + 1800  # 30 minutes from now
+                
+                # Build exactInputSingle parameters - this will use 0x3593564c method
+                exact_input_single_params = encode(
+                    ['address', 'address', 'uint24', 'address', 'uint256', 'uint256', 'uint256'],
+                    [
+                        web3.to_checksum_address(from_token),
+                        web3.to_checksum_address(to_token), 
+                        3000,  # Pool fee (0.3%)
+                        web3.to_checksum_address(address),  # recipient
+                        amount_wei,  # amountIn
+                        0,  # amountOutMinimum
+                        deadline
+                    ]
+                )
+                
+                # Commands: 0x00 = V3_SWAP_EXACT_IN
+                commands = "0x00"
+                inputs = [exact_input_single_params]
+                
+                # Build transaction using contract function
+                tx = router_contract.functions.execute(
+                    commands.encode(),
+                    inputs
+                ).build_transaction({
                     "from": address,
-                    "to": web3.to_checksum_address(self.SWAP_ROUTER_ADDRESS),
                     "value": 0,
-                    "gas": 250000,
+                    "gas": 300000,
                     "maxFeePerGas": web3.to_wei(3, "gwei"),
                     "maxPriorityFeePerGas": web3.to_wei(2, "gwei"),
                     "nonce": web3.eth.get_transaction_count(address, "pending"),
-                    "chainId": web3.eth.chain_id,
-                    "data": "0x"  # Empty data for simple swap
-                }
+                    "chainId": web3.eth.chain_id
+                })
                 
                 # Sign and send
                 signed = web3.eth.account.sign_transaction(tx, privkey)
@@ -567,8 +605,14 @@ class PharosTestnet:
         
         while time.time() < end_time:
             try:
+                # Calculate remaining time in detailed format
+                remaining_seconds = int(end_time - time.time())
+                remaining_hours = remaining_seconds // 3600
+                remaining_mins = (remaining_seconds % 3600) // 60
+                remaining_secs = remaining_seconds % 60
+                
                 self.log(f"🔄 Starting automation cycle #{cycle}")
-                self.log(f"⏱️ Time remaining: {((end_time - time.time()) / 3600):.1f} hours")
+                self.log(f"⏱️ Time remaining: {remaining_hours}h {remaining_mins}m {remaining_secs}s ({remaining_seconds} seconds total)")
                 
                 # Load accounts
                 with open('accounts.txt', 'r') as f:
@@ -583,10 +627,29 @@ class PharosTestnet:
                         await self.wait_random_delay()
                 
                 cycle += 1
+                
+                # Show countdown during 1-hour wait with live updates
                 self.log(f"✅ Cycle {cycle-1} completed. Waiting 1 hour before next cycle...")
                 
-                # Wait 1 hour between cycles
-                await asyncio.sleep(3600)
+                # Wait 1 hour with live countdown updates every 60 seconds
+                wait_end_time = time.time() + 3600  # 1 hour wait
+                while time.time() < wait_end_time and time.time() < end_time:
+                    wait_remaining = int(wait_end_time - time.time())
+                    total_remaining = int(end_time - time.time())
+                    
+                    if wait_remaining > 0:
+                        wait_hours = wait_remaining // 3600
+                        wait_mins = (wait_remaining % 3600) // 60
+                        wait_secs = wait_remaining % 60
+                        
+                        total_hours = total_remaining // 3600
+                        total_mins = (total_remaining % 3600) // 60
+                        total_seconds_remaining = total_remaining % 60
+                        
+                        self.log(f"⏳ Next cycle in: {wait_hours}h {wait_mins}m {wait_secs}s | Total remaining: {total_hours}h {total_mins}m {total_seconds_remaining}s ({total_remaining}s)")
+                        await asyncio.sleep(60)  # Update every minute
+                    else:
+                        break
                 
             except Exception as e:
                 self.log(f"❌ Error in automation cycle {cycle}: {e}")
