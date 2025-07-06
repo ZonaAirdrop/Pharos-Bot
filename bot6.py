@@ -10,7 +10,6 @@ import asyncio, random, json, time, os, pytz, secrets
 colorama_init(autoreset=True)
 wib = pytz.timezone('Asia/Jakarta')
 
-# TransactionVerifier class embedded directly in the file
 class TransactionVerifier:
     def __init__(self, rpc_url):
         self.rpc_url = rpc_url
@@ -60,7 +59,6 @@ class PharosTestnet:
         self.SWAP_ROUTER_ADDRESS = "0xbc3813206c3cb99347c96a18a757ed39386d12b8"
         self.POSITION_MANAGER_ADDRESS = "0x7ec504ae0771ec2aa1900f117e609868d0650043"
         
-        # Updated ERC20 ABI with complete function signatures
         self.ERC20_CONTRACT_ABI = json.loads('''[
             {"type":"function","name":"balanceOf","stateMutability":"view","inputs":[{"name":"account","type":"address"}],"outputs":[{"name":"","type":"uint256"}]},
             {"type":"function","name":"allowance","stateMutability":"view","inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"outputs":[{"name":"","type":"uint256"}]},
@@ -72,7 +70,6 @@ class PharosTestnet:
             {"type":"function","name":"withdraw","stateMutability":"nonpayable","inputs":[{"name":"wad","type":"uint256"}],"outputs":[]}
         ]''')
         
-        # Corrected Swap Router ABI with proper method signature 0x3593564c
         self.SWAP_CONTRACT_ABI = [
             {
                 "inputs": [
@@ -87,22 +84,21 @@ class PharosTestnet:
             }
         ]
         
-        # Corrected Position Manager ABI with proper method signature 0xac9650d8
         self.ADD_LP_CONTRACT_ABI = [
             {
                 "inputs": [
                     {"internalType": "bytes[]", "name": "data", "type": "bytes[]"}
                 ],
                 "name": "multicall",
-                "outputs": [{"internalType": "bytes[]", "name": "results", "type": "bytes[]"}],
+                "outputs": [{"internalType": "bytes[]", "name": "results", "type": "bytes[]}],
                 "stateMutability": "payable",
                 "type": "function"
             }
         ]
         
         self.tx_verifier = TransactionVerifier(self.RPC_URL)
-        self.min_delay = 5
-        self.max_delay = 10
+        self.min_delay = 6  # Default minimum delay
+        self.max_delay = 10  # Default maximum delay
         
         # Operation counters
         self.swap_count = 0
@@ -142,12 +138,9 @@ class PharosTestnet:
             return None
 
     def generate_address(self, account: str):
-        """Generate address directly from private key like bot1"""
         try:
-            # Use the private key directly - account parameter is the private key
             account_obj = Account.from_key(account)
             address = account_obj.address
-            
             return address
         except Exception as e:
             self.log(
@@ -158,50 +151,13 @@ class PharosTestnet:
             )
             return None
 
-    def generate_random_receiver(self):
-        """Generate random receiver address using bot1's approach"""
-        try:
-            private_key_bytes = secrets.token_bytes(32)
-            private_key_hex = to_hex(private_key_bytes)
-            account = Account.from_key(private_key_hex)
-            receiver = account.address
-            
-            return receiver
-        except Exception as e:
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
-                f"{Fore.RED+Style.BRIGHT} Generate Random Receiver Failed {Style.RESET_ALL}"
-                f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
-                f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}                  "
-            )
-            return None
-
-    def generate_signature(self, account: str):
-        """Generate signature using direct private key like bot1"""
-        try:
-            encoded_message = encode_defunct(text="pharos")
-            signed_message = Account.sign_message(encoded_message, private_key=account)
-            signature = to_hex(signed_message.signature)
-
-            return signature
-        except Exception as e:
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
-                f"{Fore.RED+Style.BRIGHT} Generate Signature Failed {Style.RESET_ALL}"
-                f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
-                f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}                  "
-            )
-            return None
-
     async def get_web3(self):
         return Web3(Web3.HTTPProvider(self.RPC_URL))
 
     async def get_token_balance(self, address, token_address):
-        """Get token balance for display"""
         try:
             web3 = await self.get_web3()
             if token_address == "PHRS":
-                # Native token balance
                 balance_wei = web3.eth.get_balance(address)
                 return web3.from_wei(balance_wei, 'ether')
             else:
@@ -214,10 +170,8 @@ class PharosTestnet:
             return 0
 
     async def display_balances(self, address):
-        """Display all token balances"""
         self.log(f"🔍 Checking balances for {self.mask_account(address)}...")
         
-        # Get all balances
         phrs_balance = await self.get_token_balance(address, "PHRS")
         wphrs_balance = await self.get_token_balance(address, self.WPHRS_CONTRACT_ADDRESS)
         usdc_balance = await self.get_token_balance(address, self.USDC_CONTRACT_ADDRESS)
@@ -231,67 +185,36 @@ class PharosTestnet:
         print()
 
     def configure_delays(self):
-        """Configure min and max delays"""
         try:
             print(f"{Fore.CYAN}⏰ Configure Transaction Delays")
-            min_delay = input(f"{Fore.YELLOW}Enter minimum delay between operations (seconds) [default: 5]: ").strip()
+            min_delay = input(f"{Fore.YELLOW}Enter minimum delay (seconds) [default: 6]: ").strip()
             if min_delay:
-                self.min_delay = int(min_delay)
+                self.min_delay = max(1, int(min_delay))  # Ensure minimum is at least 1
             
-            max_delay = input(f"{Fore.YELLOW}Enter maximum delay between operations (seconds) [default: 10]: ").strip()
+            max_delay = input(f"{Fore.YELLOW}Enter maximum delay (seconds) [default: 10]: ").strip()
             if max_delay:
-                self.max_delay = int(max_delay)
-            
-            if self.min_delay > self.max_delay:
-                self.max_delay = self.min_delay
+                self.max_delay = max(self.min_delay + 1, int(max_delay))  # Ensure max > min
             
             self.log(f"✅ Delays configured: {self.min_delay}s - {self.max_delay}s")
         except ValueError:
-            self.log("❌ Invalid input, using default delays: 5s - 10s")
-            self.min_delay = 5
+            self.log("❌ Invalid input, using default delays: 6s - 10s")
+            self.min_delay = 6
             self.max_delay = 10
 
     async def wait_random_delay(self):
-        """Wait for random delay between operations"""
-        delay = random.randint(self.min_delay, self.max_delay)
-        self.log(f"⏳ Waiting {delay} seconds...")
-        await asyncio.sleep(delay)
-
-    async def approving_token(self, privkey, address, spender, contract_addr, amount):
-        """Approve token spending with verification"""
-        web3 = await self.get_web3()
-        spender = web3.to_checksum_address(spender)
-        contract = web3.eth.contract(address=web3.to_checksum_address(contract_addr), abi=self.ERC20_CONTRACT_ABI)
-        decimals = contract.functions.decimals().call()
-        amount_wei = int(amount * (10 ** decimals))
-        allowance = contract.functions.allowance(address, spender).call()
-        
-        if allowance < amount_wei:
-            self.log(f"🔓 Approving token spending...")
-            
-            tx = contract.functions.approve(spender, 2**256-1).build_transaction({
-                "from": address,
-                "nonce": web3.eth.get_transaction_count(address, "pending"),
-                "gas": 80000,
-                "maxFeePerGas": web3.to_wei(2, "gwei"),
-                "maxPriorityFeePerGas": web3.to_wei(1, "gwei"),
-                "chainId": web3.eth.chain_id
-            })
-            signed = web3.eth.account.sign_transaction(tx, privkey)
-            tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
-            
-            # Verify approval transaction
-            if await self.tx_verifier.verify_transaction(web3.to_hex(tx_hash)):
-                self.log(f"✅ Token approval successful")
-            else:
-                self.log(f"❌ Token approval failed")
-                return False
+        """Wait for random delay between operations with safety checks"""
+        try:
+            if self.min_delay >= self.max_delay:
+                self.max_delay = self.min_delay + 1
                 
+            delay = random.randint(self.min_delay, self.max_delay)
+            self.log(f"⏳ Waiting {delay} seconds...")
+            await asyncio.sleep(delay)
+        except ValueError as e:
+            self.log(f"⚠️ Delay configuration error: {e}. Using default delay of 5 seconds")
             await asyncio.sleep(5)
-        return True
 
     async def perform_wrapped(self, privkey, address, amount, wrap=True, retries=3):
-        """Perform wrap/unwrap operations with verification"""
         web3 = await self.get_web3()
         contract = web3.eth.contract(address=web3.to_checksum_address(self.WPHRS_CONTRACT_ADDRESS), abi=self.ERC20_CONTRACT_ABI)
         amount_wei = web3.to_wei(amount, "ether")
@@ -333,7 +256,6 @@ class PharosTestnet:
                     self.log(f"🔗 Unwrap transaction sent: {tx_hash_hex}")
                     self.log(f"🌐 Explorer: https://testnet.pharosscan.xyz/tx/{tx_hash_hex}")
                 
-                # Verify transaction
                 if await self.tx_verifier.verify_transaction(tx_hash_hex):
                     if not wrap:
                         self.log(f"✅ {action} #{self.unwrap_count} successful")
@@ -357,12 +279,10 @@ class PharosTestnet:
         return False
 
     async def perform_swap(self, privkey, address, from_token, to_token, amount, retries=3):
-        """Perform token swap with manual DEX approach - more stable"""
         web3 = await self.get_web3()
         
         for attempt in range(retries):
             try:
-                # Get token info
                 from_contract = web3.eth.contract(address=web3.to_checksum_address(from_token), abi=self.ERC20_CONTRACT_ABI)
                 from_decimals = from_contract.functions.decimals().call()
                 from_symbol = from_contract.functions.symbol().call()
@@ -372,16 +292,11 @@ class PharosTestnet:
                 
                 amount_wei = int(amount * (10 ** from_decimals))
                 
-                # Approve token first
                 await self.approving_token(privkey, address, self.SWAP_ROUTER_ADDRESS, from_token, amount)
                 
                 self.swap_count += 1
                 self.log(f"🔄 Swap #{self.swap_count}: {amount} {from_symbol} → {to_symbol}")
                 
-                # Use simple transfer method instead of complex 0x3593564c
-                # This approach is more stable and less likely to fail
-                
-                # Build simple swap transaction
                 tx = {
                     "from": address,
                     "to": web3.to_checksum_address(self.SWAP_ROUTER_ADDRESS),
@@ -391,10 +306,9 @@ class PharosTestnet:
                     "maxPriorityFeePerGas": web3.to_wei(2, "gwei"),
                     "nonce": web3.eth.get_transaction_count(address, "pending"),
                     "chainId": web3.eth.chain_id,
-                    "data": "0x"  # Empty data for simple swap
+                    "data": "0x"
                 }
                 
-                # Sign and send
                 signed = web3.eth.account.sign_transaction(tx, privkey)
                 tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
                 tx_hash_hex = web3.to_hex(tx_hash)
@@ -402,7 +316,6 @@ class PharosTestnet:
                 self.log(f"🔗 Swap transaction sent: {tx_hash_hex}")
                 self.log(f"🌐 Explorer: https://testnet.pharosscan.xyz/tx/{tx_hash_hex}")
                 
-                # Verify transaction
                 if await self.tx_verifier.verify_transaction(tx_hash_hex):
                     self.log(f"✅ Swap #{self.swap_count} completed: {amount} {from_symbol} → {to_symbol}")
                     return True
@@ -423,7 +336,6 @@ class PharosTestnet:
         return False
 
     async def add_liquidity(self, privkey, address, token0, token1, amount0, amount1, retries=3):
-        """Add liquidity with verification"""
         web3 = await self.get_web3()
         
         for attempt in range(retries):
@@ -431,17 +343,14 @@ class PharosTestnet:
                 self.add_lp_count += 1
                 self.log(f"🔄 Add Liquidity #{self.add_lp_count}: {amount0} + {amount1}")
                 
-                # Approve tokens if needed
                 if token0 != "PHRS":
                     await self.approving_token(privkey, address, self.POSITION_MANAGER_ADDRESS, token0, amount0)
                 if token1 != "PHRS":
                     await self.approving_token(privkey, address, self.POSITION_MANAGER_ADDRESS, token1, amount1)
                 
-                # Build add liquidity transaction
                 contract = web3.eth.contract(address=web3.to_checksum_address(self.POSITION_MANAGER_ADDRESS), abi=self.ADD_LP_CONTRACT_ABI)
                 
-                # Simplified multicall for demonstration
-                data = []  # Would contain encoded function calls
+                data = []
                 
                 tx = contract.functions.multicall(data).build_transaction({
                     "from": address,
@@ -459,7 +368,6 @@ class PharosTestnet:
                 self.log(f"🔗 Add LP transaction sent: {tx_hash_hex}")
                 self.log(f"🌐 Explorer: https://testnet.pharosscan.xyz/tx/{tx_hash_hex}")
                 
-                # Verify transaction
                 if await self.tx_verifier.verify_transaction(tx_hash_hex):
                     self.log(f"✅ Add Liquidity #{self.add_lp_count} successful")
                     return True
@@ -480,9 +388,7 @@ class PharosTestnet:
         return False
 
     async def process_account(self, privkey):
-        """Process a single account with all operations"""
         try:
-            # Generate address using fixed method
             address = self.generate_address(privkey)
             if not address:
                 self.log(f"❌ Failed to generate address for account")
@@ -490,20 +396,16 @@ class PharosTestnet:
             
             self.log(f"🚀 Processing account: {self.mask_account(address)}")
             
-            # Display balances
             await self.display_balances(address)
-            
-            # Wait random delay
             await self.wait_random_delay()
             
-            # Example operations - customize as needed
-            # 1. Wrap some PHRS
-            wrap_amount = 0.01  # 0.01 PHRS
+            # Wrap some PHRS
+            wrap_amount = 0.01
             if await self.perform_wrapped(privkey, address, wrap_amount, wrap=True):
                 await self.wait_random_delay()
             
-            # 2. Perform swaps in all combinations
-            swap_amount = 0.005  # 0.005 tokens
+            # Perform swaps in all combinations
+            swap_amount = 0.005
             
             # PHRS to USDC
             if await self.perform_swap(privkey, address, self.WPHRS_CONTRACT_ADDRESS, self.USDC_CONTRACT_ADDRESS, swap_amount):
@@ -521,8 +423,8 @@ class PharosTestnet:
             if await self.perform_swap(privkey, address, self.USDT_CONTRACT_ADDRESS, self.WPHRS_CONTRACT_ADDRESS, swap_amount):
                 await self.wait_random_delay()
             
-            # 3. Add liquidity in both pairs
-            lp_amount = 0.0025  # 0.0025 tokens per pair
+            # Add liquidity in both pairs
+            lp_amount = 0.0025
             
             # PHRS-USDC liquidity
             if await self.add_liquidity(privkey, address, self.WPHRS_CONTRACT_ADDRESS, self.USDC_CONTRACT_ADDRESS, lp_amount, lp_amount):
@@ -540,7 +442,6 @@ class PharosTestnet:
             return False
 
     def ask_user_options(self):
-        """Ask user for interactive options"""
         print(f"\n{Fore.CYAN}{'='*60}")
         print("🤖 Bot6 Interactive Configuration")
         print(f"{'='*60}{Style.RESET_ALL}")
@@ -551,20 +452,14 @@ class PharosTestnet:
         print(f"🔄 Add Liquidity Operations: {self.add_lp_count}")
         print(f"{Style.RESET_ALL}")
         
-        # Ask for operation counts
         try:
             print(f"{Fore.YELLOW}How many operations do you want to perform?")
             unwrap_ops = int(input(f"{Fore.WHITE}Number of unwrap operations (current: {self.unwrap_count}): ") or "3")
             swap_ops = int(input(f"Number of swap operations (current: {self.swap_count}): ") or "5")
             lp_ops = int(input(f"Number of add liquidity operations (current: {self.add_lp_count}): ") or "2")
             
-            # Configure delays after operation counts
-            print(f"\n{Fore.MAGENTA}Configure delays between operations:")
-            min_delay = input(f"{Fore.WHITE}Minimum delay between operations (seconds) [default: 5]: ") or "5"
-            max_delay = input(f"Maximum delay between operations (seconds) [default: 10]: ") or "10"
-            
-            self.min_delay = int(min_delay)
-            self.max_delay = int(max_delay)
+            # Configure delays
+            self.configure_delays()
             
             print(f"\n{Fore.MAGENTA}Choose operation mode:")
             print("1. Single run")
@@ -588,10 +483,9 @@ class PharosTestnet:
             }
 
     async def run_24h_automation(self, config):
-        """Run bot in 24-hour automation mode"""
         import time
         start_time = time.time()
-        end_time = start_time + (24 * 60 * 60)  # 24 hours
+        end_time = start_time + (24 * 60 * 60)
         cycle = 1
         
         self.log(f"🚀 Starting 24-hour automation mode")
@@ -602,11 +496,9 @@ class PharosTestnet:
                 self.log(f"🔄 Starting automation cycle #{cycle}")
                 self.log(f"⏱️ Time remaining: {((end_time - time.time()) / 3600):.1f} hours")
                 
-                # Load accounts
                 with open('accounts.txt', 'r') as f:
                     accounts = [line.strip() for line in f.readlines() if line.strip()]
                 
-                # Process accounts with configured operations
                 for i, account in enumerate(accounts, 1):
                     self.log(f"📊 Cycle {cycle} - Processing account {i}/{len(accounts)}")
                     await self.process_account_with_config(account, config)
@@ -616,23 +508,19 @@ class PharosTestnet:
                 
                 cycle += 1
                 self.log(f"✅ Cycle {cycle-1} completed. Waiting 1 hour before next cycle...")
-                
-                # Wait 1 hour between cycles
                 await asyncio.sleep(3600)
                 
             except Exception as e:
                 self.log(f"❌ Error in automation cycle {cycle}: {e}")
-                await asyncio.sleep(300)  # Wait 5 minutes on error
+                await asyncio.sleep(300)
         
         self.log(f"🎉 24-hour automation completed after {cycle-1} cycles!")
 
     async def process_account_with_config(self, privkey, config):
-        """Process account with user-configured operation counts"""
         try:
             address = self.generate_address(privkey)
             self.log(f"👤 Processing: {self.mask_account(address)}")
             
-            # Display balances
             await self.display_balances(address)
             await self.wait_random_delay()
             
@@ -645,21 +533,16 @@ class PharosTestnet:
             # Perform swap operations in all combinations
             swap_amount = 0.005
             for i in range(config['swap_ops']):
-                # Alternate between different swap pairs
                 if i % 4 == 0:
-                    # PHRS to USDC
                     if await self.perform_swap(privkey, address, self.WPHRS_CONTRACT_ADDRESS, self.USDC_CONTRACT_ADDRESS, swap_amount):
                         await self.wait_random_delay()
                 elif i % 4 == 1:
-                    # PHRS to USDT
                     if await self.perform_swap(privkey, address, self.WPHRS_CONTRACT_ADDRESS, self.USDT_CONTRACT_ADDRESS, swap_amount):
                         await self.wait_random_delay()
                 elif i % 4 == 2:
-                    # USDC to PHRS
                     if await self.perform_swap(privkey, address, self.USDC_CONTRACT_ADDRESS, self.WPHRS_CONTRACT_ADDRESS, swap_amount):
                         await self.wait_random_delay()
                 else:
-                    # USDT to PHRS
                     if await self.perform_swap(privkey, address, self.USDT_CONTRACT_ADDRESS, self.WPHRS_CONTRACT_ADDRESS, swap_amount):
                         await self.wait_random_delay()
             
@@ -667,11 +550,9 @@ class PharosTestnet:
             lp_amount = 0.0025
             for i in range(config['lp_ops']):
                 if i % 2 == 0:
-                    # PHRS-USDC liquidity
                     if await self.add_liquidity(privkey, address, self.WPHRS_CONTRACT_ADDRESS, self.USDC_CONTRACT_ADDRESS, lp_amount, lp_amount):
                         await self.wait_random_delay()
                 else:
-                    # PHRS-USDT liquidity
                     if await self.add_liquidity(privkey, address, self.WPHRS_CONTRACT_ADDRESS, self.USDT_CONTRACT_ADDRESS, lp_amount, lp_amount):
                         await self.wait_random_delay()
             
@@ -683,10 +564,8 @@ class PharosTestnet:
             return False
 
     async def main(self):
-        """Main execution function with interactive features"""
         self.welcome()
         
-        # Ask user for configuration
         config = self.ask_user_options()
         
         self.log(f"📋 Configuration:")
@@ -697,7 +576,6 @@ class PharosTestnet:
         self.log(f"   Max delay: {self.max_delay}s")
         self.log(f"   Mode: {config['mode']}")
         
-        # Load accounts from file (same format as bot1-bot5)
         try:
             with open('accounts.txt', 'r') as f:
                 accounts = [line.strip() for line in f.readlines() if line.strip()]
@@ -711,7 +589,6 @@ class PharosTestnet:
             if config['mode'] == '24h':
                 await self.run_24h_automation(config)
             else:
-                # Single run mode
                 for i, account in enumerate(accounts, 1):
                     self.log(f"📊 Processing account {i}/{len(accounts)}")
                     await self.process_account_with_config(account, config)
