@@ -480,29 +480,29 @@ class PharosTestnet:
         # Configure delays
         self.configure_delays()
         
-        # Load private keys from file
+        # Load accounts from file (same format as bot1-bot5)
         try:
-            with open('private_keys.txt', 'r') as f:
-                private_keys = [line.strip() for line in f.readlines() if line.strip()]
+            with open('accounts.txt', 'r') as f:
+                accounts = [line.strip() for line in f.readlines() if line.strip()]
             
-            if not private_keys:
-                self.log("❌ No private keys found in private_keys.txt")
+            if not accounts:
+                self.log("❌ No accounts found in accounts.txt")
                 return
             
-            self.log(f"📝 Loaded {len(private_keys)} private keys")
+            self.log(f"📝 Loaded {len(accounts)} accounts")
             
             # Process each account
-            for i, privkey in enumerate(private_keys, 1):
-                self.log(f"📊 Processing account {i}/{len(private_keys)}")
-                await self.process_account(privkey)
+            for i, account in enumerate(accounts, 1):
+                self.log(f"📊 Processing account {i}/{len(accounts)}")
+                await self.process_account(account)
                 
-                if i < len(private_keys):
+                if i < len(accounts):
                     await self.wait_random_delay()
             
             self.log("🎉 All accounts processed successfully!")
             
         except FileNotFoundError:
-            self.log("❌ private_keys.txt file not found")
+            self.log("❌ accounts.txt file not found")
         except Exception as e:
             self.log(f"❌ Error in main execution: {e}")
 
