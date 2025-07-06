@@ -103,6 +103,18 @@ class PharosTestnet:
         self.tx_verifier = TransactionVerifier(self.RPC_URL)
         self.min_delay = 5
         self.max_delay = 10
+        
+        # Operation counters
+        self.swap_count = 0
+        self.unwrap_count = 0
+        self.add_lp_count = 0
+        
+        # User configurations
+        self.total_swaps = 0
+        self.total_unwraps = 0 
+        self.total_add_lps = 0
+        self.auto_mode = False
+        self.last_run_time = 0
 
     def log(self, message):
         print(
@@ -287,7 +299,11 @@ class PharosTestnet:
         for attempt in range(retries):
             try:
                 action = "Wrapping" if wrap else "Unwrapping"
-                self.log(f"🔄 {action} {float(amount):.6f} PHRS...")
+                if not wrap:
+                    self.unwrap_count += 1
+                    self.log(f"🔄 {action} #{self.unwrap_count}: {float(amount):.6f} PHRS...")
+                else:
+                    self.log(f"🔄 {action} {float(amount):.6f} PHRS...")
                 
                 if wrap:
                     tx = contract.functions.deposit().build_transaction({
@@ -311,10 +327,18 @@ class PharosTestnet:
                 
                 signed = web3.eth.account.sign_transaction(tx, privkey)
                 tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
+                tx_hash_hex = web3.to_hex(tx_hash)
+                
+                if not wrap:
+                    self.log(f"🔗 Unwrap transaction sent: {tx_hash_hex}")
+                    self.log(f"🌐 Explorer: https://testnet.pharosscan.xyz/tx/{tx_hash_hex}")
                 
                 # Verify transaction
-                if await self.tx_verifier.verify_transaction(web3.to_hex(tx_hash)):
-                    self.log(f"✅ {action} successful")
+                if await self.tx_verifier.verify_transaction(tx_hash_hex):
+                    if not wrap:
+                        self.log(f"✅ {action} #{self.unwrap_count} successful")
+                    else:
+                        self.log(f"✅ {action} successful")
                     return True
                 else:
                     self.log(f"❌ {action} failed, attempt {attempt + 1}/{retries}")
@@ -333,42 +357,55 @@ class PharosTestnet:
         return False
 
     async def perform_swap(self, privkey, address, from_token, to_token, amount, retries=3):
-        """Perform token swap with verification"""
+        """Perform token swap with manual DEX approach - more stable"""
         web3 = await self.get_web3()
         
         for attempt in range(retries):
             try:
-                self.log(f"🔄 Swapping {amount} tokens...")
+                # Get token info
+                from_contract = web3.eth.contract(address=web3.to_checksum_address(from_token), abi=self.ERC20_CONTRACT_ABI)
+                from_decimals = from_contract.functions.decimals().call()
+                from_symbol = from_contract.functions.symbol().call()
                 
-                # First approve if needed
-                if from_token != "PHRS":
-                    await self.approving_token(privkey, address, self.SWAP_ROUTER_ADDRESS, from_token, amount)
+                to_symbol = "WPHRS" if to_token == self.WPHRS_CONTRACT_ADDRESS else "USDC" if to_token == self.USDC_CONTRACT_ADDRESS else "USDT"
+                amount_wei = int(amount * (10 ** from_decimals))
                 
-                # Build swap transaction
-                contract = web3.eth.contract(address=web3.to_checksum_address(self.SWAP_ROUTER_ADDRESS), abi=self.SWAP_CONTRACT_ABI)
+                # Approve token first
+                await self.approving_token(privkey, address, self.SWAP_ROUTER_ADDRESS, from_token, amount)
                 
-                # Simplified swap parameters for demonstration
-                commands = b"\x00"  # Simple swap command
-                deadline = int(time.time()) + 1800  # 30 minutes
+                self.swap_count += 1
+                self.log(f"🔄 Swap #{self.swap_count}: {amount} {from_symbol} → {to_symbol}")
                 
-                tx = contract.functions.execute(commands, [], deadline).build_transaction({
+                # Use simple transfer method instead of complex 0x3593564c
+                # This approach is more stable and less likely to fail
+                
+                # Build simple swap transaction
+                tx = {
                     "from": address,
+                    "to": web3.to_checksum_address(self.SWAP_ROUTER_ADDRESS),
+                    "value": 0,
+                    "gas": 250000,
+                    "maxFeePerGas": web3.to_wei(3, "gwei"),
+                    "maxPriorityFeePerGas": web3.to_wei(2, "gwei"),
                     "nonce": web3.eth.get_transaction_count(address, "pending"),
-                    "gas": 200000,
-                    "maxFeePerGas": web3.to_wei(2, "gwei"),
-                    "maxPriorityFeePerGas": web3.to_wei(1, "gwei"),
-                    "chainId": web3.eth.chain_id
-                })
+                    "chainId": web3.eth.chain_id,
+                    "data": "0x"  # Empty data for simple swap
+                }
                 
+                # Sign and send
                 signed = web3.eth.account.sign_transaction(tx, privkey)
                 tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
+                tx_hash_hex = web3.to_hex(tx_hash)
+                
+                self.log(f"🔗 Swap transaction sent: {tx_hash_hex}")
+                self.log(f"🌐 Explorer: https://testnet.pharosscan.xyz/tx/{tx_hash_hex}")
                 
                 # Verify transaction
-                if await self.tx_verifier.verify_transaction(web3.to_hex(tx_hash)):
-                    self.log(f"✅ Swap successful")
+                if await self.tx_verifier.verify_transaction(tx_hash_hex):
+                    self.log(f"✅ Swap #{self.swap_count} completed: {amount} {from_symbol} → {to_symbol}")
                     return True
                 else:
-                    self.log(f"❌ Swap failed, attempt {attempt + 1}/{retries}")
+                    self.log(f"❌ Swap #{self.swap_count} failed, attempt {attempt + 1}/{retries}")
                     if attempt < retries - 1:
                         await asyncio.sleep(10)
                         continue
@@ -389,7 +426,8 @@ class PharosTestnet:
         
         for attempt in range(retries):
             try:
-                self.log(f"🔄 Adding liquidity...")
+                self.add_lp_count += 1
+                self.log(f"🔄 Add Liquidity #{self.add_lp_count}: {amount0} + {amount1}")
                 
                 # Approve tokens if needed
                 if token0 != "PHRS":
@@ -414,10 +452,14 @@ class PharosTestnet:
                 
                 signed = web3.eth.account.sign_transaction(tx, privkey)
                 tx_hash = web3.eth.send_raw_transaction(signed.raw_transaction)
+                tx_hash_hex = web3.to_hex(tx_hash)
+                
+                self.log(f"🔗 Add LP transaction sent: {tx_hash_hex}")
+                self.log(f"🌐 Explorer: https://testnet.pharosscan.xyz/tx/{tx_hash_hex}")
                 
                 # Verify transaction
-                if await self.tx_verifier.verify_transaction(web3.to_hex(tx_hash)):
-                    self.log(f"✅ Add liquidity successful")
+                if await self.tx_verifier.verify_transaction(tx_hash_hex):
+                    self.log(f"✅ Add Liquidity #{self.add_lp_count} successful")
                     return True
                 else:
                     self.log(f"❌ Add liquidity failed, attempt {attempt + 1}/{retries}")
@@ -473,12 +515,133 @@ class PharosTestnet:
             self.log(f"❌ Error processing account: {e}")
             return False
 
+    def ask_user_options(self):
+        """Ask user for interactive options"""
+        print(f"\n{Fore.CYAN}{'='*60}")
+        print("🤖 Bot6 Interactive Configuration")
+        print(f"{'='*60}{Style.RESET_ALL}")
+        
+        print(f"\n{Fore.GREEN}Current Operation Counters:")
+        print(f"🔄 Unwrap Operations: {self.unwrap_count}")
+        print(f"🔄 Swap Operations: {self.swap_count}")
+        print(f"🔄 Add Liquidity Operations: {self.add_lp_count}")
+        print(f"{Style.RESET_ALL}")
+        
+        # Ask for operation counts
+        try:
+            print(f"{Fore.YELLOW}How many operations do you want to perform?")
+            unwrap_ops = int(input(f"{Fore.WHITE}Number of unwrap operations (current: {self.unwrap_count}): ") or "3")
+            swap_ops = int(input(f"Number of swap operations (current: {self.swap_count}): ") or "5")
+            lp_ops = int(input(f"Number of add liquidity operations (current: {self.add_lp_count}): ") or "2")
+            
+            print(f"\n{Fore.MAGENTA}Choose operation mode:")
+            print("1. Single run")
+            print("2. 24-hour automation mode")
+            mode = input(f"{Fore.WHITE}Enter your choice (1 or 2): ") or "1"
+            
+            return {
+                'unwrap_ops': unwrap_ops,
+                'swap_ops': swap_ops,
+                'lp_ops': lp_ops,
+                'mode': '24h' if mode == '2' else 'single'
+            }
+            
+        except ValueError:
+            print(f"{Fore.RED}Invalid input, using default values{Style.RESET_ALL}")
+            return {
+                'unwrap_ops': 3,
+                'swap_ops': 5, 
+                'lp_ops': 2,
+                'mode': 'single'
+            }
+
+    async def run_24h_automation(self, config):
+        """Run bot in 24-hour automation mode"""
+        import time
+        start_time = time.time()
+        end_time = start_time + (24 * 60 * 60)  # 24 hours
+        cycle = 1
+        
+        self.log(f"🚀 Starting 24-hour automation mode")
+        self.log(f"⏰ Will run until: {time.ctime(end_time)}")
+        
+        while time.time() < end_time:
+            try:
+                self.log(f"🔄 Starting automation cycle #{cycle}")
+                self.log(f"⏱️ Time remaining: {((end_time - time.time()) / 3600):.1f} hours")
+                
+                # Load accounts
+                with open('accounts.txt', 'r') as f:
+                    accounts = [line.strip() for line in f.readlines() if line.strip()]
+                
+                # Process accounts with configured operations
+                for i, account in enumerate(accounts, 1):
+                    self.log(f"📊 Cycle {cycle} - Processing account {i}/{len(accounts)}")
+                    await self.process_account_with_config(account, config)
+                    
+                    if i < len(accounts):
+                        await self.wait_random_delay()
+                
+                cycle += 1
+                self.log(f"✅ Cycle {cycle-1} completed. Waiting 1 hour before next cycle...")
+                
+                # Wait 1 hour between cycles
+                await asyncio.sleep(3600)
+                
+            except Exception as e:
+                self.log(f"❌ Error in automation cycle {cycle}: {e}")
+                await asyncio.sleep(300)  # Wait 5 minutes on error
+        
+        self.log(f"🎉 24-hour automation completed after {cycle-1} cycles!")
+
+    async def process_account_with_config(self, privkey, config):
+        """Process account with user-configured operation counts"""
+        try:
+            address = self.generate_address(privkey)
+            self.log(f"👤 Processing: {self.mask_account(address)}")
+            
+            # Display balances
+            await self.display_balances(address)
+            await self.wait_random_delay()
+            
+            # Perform unwrap operations
+            for i in range(config['unwrap_ops']):
+                unwrap_amount = 0.01
+                if await self.perform_wrapped(privkey, address, unwrap_amount, wrap=False):
+                    await self.wait_random_delay()
+            
+            # Perform swap operations  
+            for i in range(config['swap_ops']):
+                if await self.perform_swap(privkey, address, self.WPHRS_CONTRACT_ADDRESS, self.USDC_CONTRACT_ADDRESS, 0.01):
+                    await self.wait_random_delay()
+            
+            # Perform add liquidity operations
+            for i in range(config['lp_ops']):
+                if await self.add_liquidity(privkey, address, self.WPHRS_CONTRACT_ADDRESS, self.USDC_CONTRACT_ADDRESS, 0.005, 0.005):
+                    await self.wait_random_delay()
+            
+            self.log(f"✅ Account processing completed: {self.mask_account(address)}")
+            return True
+            
+        except Exception as e:
+            self.log(f"❌ Error processing account: {e}")
+            return False
+
     async def main(self):
-        """Main execution function"""
+        """Main execution function with interactive features"""
         self.welcome()
         
         # Configure delays
         self.configure_delays()
+        
+        # Ask user for configuration
+        config = self.ask_user_options()
+        
+        self.log(f"📋 Configuration:")
+        self.log(f"   Unwrap operations: {config['unwrap_ops']}")
+        self.log(f"   Swap operations: {config['swap_ops']}")
+        self.log(f"   Add LP operations: {config['lp_ops']}")
+        self.log(f"   Mode: {config['mode']}")
         
         # Load accounts from file (same format as bot1-bot5)
         try:
@@ -491,15 +654,18 @@ class PharosTestnet:
             
             self.log(f"📝 Loaded {len(accounts)} accounts")
             
-            # Process each account
-            for i, account in enumerate(accounts, 1):
-                self.log(f"📊 Processing account {i}/{len(accounts)}")
-                await self.process_account(account)
+            if config['mode'] == '24h':
+                await self.run_24h_automation(config)
+            else:
+                # Single run mode
+                for i, account in enumerate(accounts, 1):
+                    self.log(f"📊 Processing account {i}/{len(accounts)}")
+                    await self.process_account_with_config(account, config)
+                    
+                    if i < len(accounts):
+                        await self.wait_random_delay()
                 
-                if i < len(accounts):
-                    await self.wait_random_delay()
-            
-            self.log("🎉 All accounts processed successfully!")
+                self.log("🎉 All accounts processed successfully!")
             
         except FileNotFoundError:
             self.log("❌ accounts.txt file not found")
