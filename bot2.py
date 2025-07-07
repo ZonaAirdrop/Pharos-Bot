@@ -25,7 +25,7 @@ class PharosTestnet:
             "User-Agent": FakeUserAgent().random
         }
         self.BASE_API = "https://api.pharosnetwork.xyz"
-        self.RPC_URL = "https://api.zan.top/node/v1/pharos/testnet/0069573d4f194cf49cb551d879175fce"
+        self.RPC_URL = "https://api.zan.top/node/v1/pharos/testnet/3af36f4ed17e45399ded4012e2e5d791"
         self.WPHRS_CONTRACT_ADDRESS = "0x3019B247381c850ab53Dc0EE53bCe7A07Ea9155f"
         self.USDC_CONTRACT_ADDRESS = "0x72df0bcd7276f2dFbAc900D1CE63c272C4BCcCED"
         self.USDT_CONTRACT_ADDRESS = "0xD4071393f8716661958F766DF660033b3d35fD29"
