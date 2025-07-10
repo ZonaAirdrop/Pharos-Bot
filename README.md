@@ -84,10 +84,11 @@ http://user:pass@127.0.0.1:8080
 
 ````
 python bot1.py  # Zenith 
-python bot2.py  # Faroswap 
-python bot3.py  # OpenFi
-python bot4.py  # Brokex
-python bot5.py  # Gotchipus
+python bot2.py  # OpenFi
+python bot3.py  # Brokek
+python bot4.py  # Gotchipus
+python bot5.py  # Zentra
+Python bot6.py  # Faroswap
 ````
 
 # pools.json Edit with your Pools 
