@@ -20,13 +20,15 @@
 
 ## 🤖 Bot Files Overview
 
-| File       | Platform   | Functionality                            |
-|------------|------------|------------------------------------------|
-| `bot1.py`  | Zenith     | Automated DeFi actions (swap/liquidity) |
-| `bot2.py`  | FaroSwap   | Swap and liquidity automation            |
-| `bot3.py`  | OpenFi     | Lending, borrowing & DeFi ops            |
-| `bot4.py`  | Brokex     | Auto faucet claim & trade operations     |
-| `bot5.py`  | Gotchipus  | NFT minting, wearable claiming           |
+| File      | Platform  | Functionality                           |
+| --------- | --------- | --------------------------------------- |
+| `bot1.py` | Zenith    | Automated DeFi actions (swap/liquidity) |
+| `bot2.py` | OpenFi    | Lending, borrowing & DeFi ops           |
+| `bot3.py` | Brokex    | Auto faucet claim & trade operations    |
+| `bot4.py` | Gotchipus | NFT minting, wearable claiming          |
+| `bot5.py` | Zentra    | General DeFi utilities & automation     |
+| `bot6.py` | FaroSwap  | Swap and liquidity automation           |
+
 
 # Create Screen for vps 
 Install screen 
