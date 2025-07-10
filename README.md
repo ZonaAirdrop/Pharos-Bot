@@ -100,7 +100,8 @@ python bot5.py  # Gotchipus
     }
 ]
 ````
-
+# Tutorial 
+https://postimg.cc/gallery/s5mMRdY
 
 # Check thx PharosScann 
 
