@@ -104,6 +104,10 @@ python bot5.py  # Gotchipus
 
 [![IMG-20250711-033414.jpg](https://i.postimg.cc/59FTSRPX/IMG-20250711-033414.jpg)](https://postimg.cc/Dmnx2B3h)
 
+[![IMG-20250711-033454.jpg](https://i.postimg.cc/L6K7C37N/IMG-20250711-033454.jpg)](https://postimg.cc/JtxPtZRk)
+
+[![IMG-20250711-033524.jpg](https://i.postimg.cc/gJ15PV0c/IMG-20250711-033524.jpg)](https://postimg.cc/wycFXsJn)
+
 # Check thx PharosScann 
 
 https://testnet.pharosscan.xyz/address/
