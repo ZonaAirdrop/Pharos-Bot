@@ -108,6 +108,11 @@ python bot5.py  # Gotchipus
 
 [![IMG-20250711-033524.jpg](https://i.postimg.cc/gJ15PV0c/IMG-20250711-033524.jpg)](https://postimg.cc/wycFXsJn)
 
+## ☕ Buy Me a Coffee
+
+* **EVM:** `0x1B19167193553f125338d42432f61CBEAd2d4339`
+
+  
 # Check thx PharosScann 
 
 https://testnet.pharosscan.xyz/address/
