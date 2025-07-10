@@ -101,7 +101,11 @@ python bot5.py  # Gotchipus
 ]
 ````
 # Tutorial 
-https://postimg.cc/gallery/s5mMRdY
+[url=https://postimg.cc/Dmnx2B3h][img]https://i.postimg.cc/Dmnx2B3h/IMG-20250711-033414.jpg[/img][/url]
+
+[url=https://postimg.cc/JtxPtZRk][img]https://i.postimg.cc/JtxPtZRk/IMG-20250711-033454.jpg[/img][/url]
+
+[url=https://postimg.cc/wycFXsJn][img]https://i.postimg.cc/wycFXsJn/IMG-20250711-033524.jpg[/img][/url]
 
 # Check thx PharosScann 
 
