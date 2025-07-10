@@ -90,6 +90,18 @@ python bot4.py  # Brokex
 python bot5.py  # Gotchipus
 ````
 
+# pools.json Edit with your Pools 
+
+````
+[    
+    {
+        "USDC_USDT": "Your USDC_USDT PMM Pool Address",
+        "USDT_USDC": "Your USDT_USDC PMM Pool Address"
+    }
+]
+````
+
+
 # Check thx PharosScann 
 
 https://testnet.pharosscan.xyz/address/
