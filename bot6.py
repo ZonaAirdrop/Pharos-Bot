@@ -22,7 +22,7 @@ class Faroswap:
             "Sec-Fetch-Site": "cross-site",
             "User-Agent": FakeUserAgent().random
         }
-        self.RPC_URL = "https://api.zan.top/node/v1/pharos/testnet/f77dcbf229c3458793a1ca2c0c782210"
+        self.RPC_URL = "https://api.zan.top/node/v1/pharos/testnet/54b49326c9f44b6e8730dc5dd4348421"
         self.PHRS_CONTRACT_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
         self.WPHRS_CONTRACT_ADDRESS = "0x3019B247381c850ab53Dc0EE53bCe7A07Ea9155f"
         self.USDC_CONTRACT_ADDRESS = "0x72df0bcd7276f2dFbAc900D1CE63c272C4BCcCED"
@@ -104,13 +104,13 @@ class Faroswap:
 
     def welcome(self):
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "\n" + "═" * 60)
-        print(Fore.GREEN + Style.BRIGHT + "    ⚡ Pharos X  Faroswap Zesnet ⚡")
+        print(Fore.GREEN + Style.BRIGHT + "    ⚡ Pharos Automation BOT ⚡")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
-        print(Fore.YELLOW + Style.BRIGHT + "    Team : Zonaairdrop")
+        print(Fore.YELLOW + Style.BRIGHT + "    🧠 Project    : Forswap - Automation Bot")
+        print(Fore.YELLOW + Style.BRIGHT + "    🧑‍💻 Author     : YetiDAO")
+        print(Fore.YELLOW + Style.BRIGHT + "    🌐 Status     : Running & Monitering...")
         print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
-        print(Fore.RED + Style.BRIGHT + "   Channel telegram : @ZonaAirdr0p")
-        print(Fore.CYAN + Style.BRIGHT + "    ────────────────────────────────")
-        print(Fore.MAGENTA + Style.BRIGHT + "   Powered by Zonaairdrop")
+        print(Fore.MAGENTA + Style.BRIGHT + "    🧬 Powered by Cryptodai3 × YetiDAO | Buddy v1.1 🚀")
         print(Fore.LIGHTGREEN_EX + Style.BRIGHT + "═" * 60 + "\n")
 
     def format_seconds(self, seconds):
