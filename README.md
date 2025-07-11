@@ -1,8 +1,5 @@
 # PHAROS BOT TESNET #
 
-[![Version](https://img.shields.io/badge/version-v1.0.0-blue)](https://github.com/Kazuha787/Pharos-Auto-Bot)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-
 📋 Features
  
 🚀 Automated. Swaps
