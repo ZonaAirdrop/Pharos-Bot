@@ -1,22 +1,17 @@
 # PHAROS BOT TESNET #
 
+----------------------------
 📋 Features
- 
-🚀 Automated. Swaps
-
-🚀 Automated. Transfer 
-
-🚀 Automated. Claim Faucet 
-
-🚀 Automated Daily Check-in
- 
-🚀 Auto Mint NFT 
-
-🚀 Multi-Wallet Support
-
-🚀 Proxy Support
-
-🚀 Support. VPS & Termux 
+----------------------------
+🚀 Automated Swaps  
+🚀 Automated Transfer  
+🚀 Automated Claim Faucet  
+🚀 Automated Daily Check-in  
+🚀 Auto Mint NFT  
+🚀 Multi-Wallet Support  
+🚀 Proxy Support  
+🚀 Support VPS & Termux
+----------------------------
 
 ## 🤖 Bot Files Overview
 
