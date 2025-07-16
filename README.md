@@ -23,6 +23,7 @@
 | `bot4.py` | Gotchipus | NFT minting, wearable claiming          |
 | `bot5.py` | Zentra    | General DeFi utilities & automation     |
 | `bot6.py` | FaroSwap  | Swap and liquidity automation           |
+| `bot7.py` | DomainName |
 
 
 # Create Screen for vps 
@@ -86,6 +87,7 @@ python bot3.py  # Brokek
 python bot4.py  # Gotchipus
 python bot5.py  # Zentra
 Python bot6.py  # Faroswap
+python bot7.py  # MintDomainName
 ````
 
 # pools.json Edit with your Pools 
