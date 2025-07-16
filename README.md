@@ -26,7 +26,7 @@
 
  # Installation
 
-````markdown
+````
 git clone https://github.com/ZonaAirdrop/Pharos-Bot.git
 ````
 ````
