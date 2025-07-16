@@ -390,7 +390,7 @@ def print_progress():
     
     print(f"""
 {Colors.BRIGHT_GREEN}{Colors.BOLD}
-[ WARDEN BOT ]
+[ Domains Pharos BOT ]
 {current_time_str}
 
 Automated Protocol Utility
