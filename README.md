@@ -23,7 +23,7 @@
 | `bot4.py` | Gotchipus | NFT minting, wearable claiming          |
 | `bot5.py` | Zentra    | General DeFi utilities & automation     |
 | `bot6.py` | FaroSwap  | Swap and liquidity automation           |
-| `bot7.py` | DomainName |
+| `bot7.py` | DomainName | Auto Creat Domain |
 
 
 # Create Screen for vps 
