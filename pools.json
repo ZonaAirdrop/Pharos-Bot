@@ -1,6 +1,6 @@
 [    
     {
-        "USDC_USDT": "Your USDC_USDT PMM Pool Address",
-        "USDT_USDC": "Your USDT_USDC PMM Pool Address"
+        "USDC_USDT": "0xaf3cecb47854f7be61ba7e15b7d03e73e78a6c6a",
+        "USDT_USDC": "0x27acad3317c8f1f7515a3c23fecf62b56c2d6104"
     }
 ]
