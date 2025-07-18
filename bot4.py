@@ -85,7 +85,7 @@ class Gotchipus:
             "User-Agent": FakeUserAgent().random
         }
         self.BASE_API = "https://gotchipus.com"
-        self.RPC_URL = "https://api.zan.top/node/v1/pharos/testnet/54b49326c9f44b6e8730dc5dd4348421"
+        self.RPC_URL = "https://testnet.dplabs-internal.com"
         self.GOTCHIPUS_CONTRACT_ADDRESS = "0x0000000038f050528452D6Da1E7AACFA7B3Ec0a8"
         self.ERC20_CONTRACT_ABI = json.loads('''[
             {"type":"function","name":"balanceOf","stateMutability":"view","inputs":[{"name":"address","type":"address"}],"outputs":[{"name":"","type":"uint256"}]}
