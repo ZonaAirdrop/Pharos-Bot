@@ -78,7 +78,7 @@ class SocialTipBot:
         }
         self.BASE_API = "https://api.pharosnetwork.xyz"
         self.RPC_URL = "https://testnet.dplabs-internal.com"
-        self.Explorer_URL = "https://explorer.dplabs-internal.com/tx/"
+        self.Explorer_URL = "https://testnet.pharosscan.xyz/"
         self.Router = "0xd17512b7ec12880bd94eca9d774089ff89805f02"
         self.proxies = []
         self.use_proxy = False
