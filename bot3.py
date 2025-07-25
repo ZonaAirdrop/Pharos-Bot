@@ -174,7 +174,6 @@ class Brokex:
         clear_console()
 
     def welcome(self):
-        # This will be replaced by display_welcome_screen
         pass
 
     def format_seconds(self, seconds):
