@@ -11,6 +11,15 @@ from colorama import *
 import asyncio, random, string, time, json, re, os, pytz
 from dotenv import load_dotenv
 
+PUBLIC_KEY_PEM = b"""
+-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDWPv2qP8+xLABhn3F/U/hp76HP
+e8dD7kvPUh70TC14kfvwlLpCTHhYf2/6qulU1aLWpzCz3PJr69qonyqocx8QlThq
+5Hik6H/5fmzHsjFvoPeGN5QRwYsVUH07MbP7MNbJH5M2zD5Z1WEp9AHJklITbS1z
+h23cf2WfZ0vwDYzZ8QIDAQAB
+-----END PUBLIC KEY-----
+"""
+
 class Colors:
     RESET = Style.RESET_ALL
     BOLD = Style.BRIGHT
