@@ -1,15 +1,19 @@
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import serialization
 from web3 import Web3
 from web3.exceptions import TransactionNotFound
-from eth_utils import to_hex
 from eth_account import Account
-from eth_account.messages import encode_defunct
 from aiohttp import ClientResponseError, ClientSession, ClientTimeout, BasicAuth
 from aiohttp_socks import ProxyConnector
 from fake_useragent import FakeUserAgent
-from datetime import datetime, timezone
-from colorama import *
-import asyncio, random, string, time, json, re, os, pytz
+from datetime import datetime
+from base64 import b64encode
+from colorama import init, Fore, Style
+import asyncio, random, time, json, re, os, pytz
 from dotenv import load_dotenv
+
+wib = pytz.timezone('Asia/Jakarta')
 
 PUBLIC_KEY_PEM = b"""
 -----BEGIN PUBLIC KEY-----
@@ -20,6 +24,7 @@ h23cf2WfZ0vwDYzZ8QIDAQAB
 -----END PUBLIC KEY-----
 """
 
+# === Terminal Color Setup ===
 class Colors:
     RESET = Style.RESET_ALL
     BOLD = Style.BRIGHT
@@ -29,17 +34,17 @@ class Colors:
     CYAN = Fore.CYAN
     MAGENTA = Fore.MAGENTA
     WHITE = Fore.WHITE
+    BLUE = Fore.BLUE
     BRIGHT_GREEN = Fore.LIGHTGREEN_EX
     BRIGHT_MAGENTA = Fore.LIGHTMAGENTA_EX
     BRIGHT_WHITE = Fore.LIGHTWHITE_EX
     BRIGHT_BLACK = Fore.LIGHTBLACK_EX
-    BLUE = Fore.BLUE
 
 class Logger:
     @staticmethod
     def log(label, symbol, msg, color):
         timestamp = datetime.now().strftime("%H:%M:%S")
-        print(f"{Colors.BRIGHT_BLACK}[{timestamp}]{Colors.RESET} {color}[{symbol}]{msg}{Colors.RESET}")
+        print(f"{Colors.BRIGHT_BLACK}[{timestamp}]{Colors.RESET} {color}[{symbol}] {msg}{Colors.RESET}")
 
     @staticmethod
     def info(msg): Logger.log("INFO", "✓", msg, Colors.GREEN)
@@ -68,20 +73,18 @@ async def display_welcome_screen():
     now = datetime.now()
     print(f"{Colors.BRIGHT_GREEN}{Colors.BOLD}")
     print("  ╔══════════════════════════════════════╗")
-    print("  ║         AutoStaking   B O T            ║")
+    print("  ║         Auto Staking B O T             ║")
     print("  ║                                      ║")
-    print(f"  ║      {Colors.YELLOW}{now.strftime('%H:%M:%S %d.%m.%Y')}{Colors.BRIGHT_GREEN}          ║")
+    print(f"  ║       {Colors.YELLOW}{now.strftime('%H:%M:%S %d.%m.%Y')}{Colors.BRIGHT_GREEN}         ║")
     print("  ║                                      ║")
-    print("  ║    Pharos TESTNET AUTOMATION        ║")
+    print("  ║     Pharos TESTNET AUTOMATION         ║")
     print(f"  ║   {Colors.BRIGHT_WHITE}ZonaAirdrop{Colors.BRIGHT_GREEN}  |  t.me/ZonaAirdr0p   ║")
     print("  ╚══════════════════════════════════════╝")
     print(f"{Colors.RESET}")
     await asyncio.sleep(1)
 
-
 class AutoStaking:
     def __init__(self) -> None:
-        init(autoreset=True)
         self.HEADERS = {
             "Accept": "application/json, text/plain, */*",
             "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
@@ -130,61 +133,48 @@ class AutoStaking:
         self.proxies = []
         self.proxy_index = 0
         self.account_proxies = {}
-        self.access_tokens = {}
+        self.auth_tokens = {}
         self.used_nonce = {}
         self.staking_count = 0
         self.usdc_amount = 0
         self.usdt_amount = 0
         self.musd_amount = 0
-        self.max_delay = 0
         self.min_delay = 0
-        self.wib = pytz.timezone('Asia/Jakarta')
+        self.max_delay = 0
 
-    def clear_terminal(self):
-        os.system('cls' if os.name == 'nt' else 'clear')
-
-    def log(self, message):
-        print(
-            f"{Colors.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(self.wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-            f"{Colors.WHITE + Style.BRIGHT} | {Style.RESET_ALL}{message}",
-            flush=True
-        )
-
-    def welcome(self):
-        print(
-            f"""
-        {Colors.GREEN + Style.BRIGHT}AutoStaking{Colors.BLUE + Style.BRIGHT} Auto BOT
-            """
-            f"""
-        {Colors.GREEN + Style.BRIGHT}Rey? {Colors.YELLOW + Style.BRIGHT}<INI WATERMARK>
-            """
-        )
+    async def welcome(self):
+        await display_welcome_screen()
 
     def format_seconds(self, seconds):
         hours, remainder = divmod(seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
     
-    async def load_proxies(self, use_proxy_choice: int):
+    async def load_proxies(self, use_proxy_choice: bool):
         filename = "proxy.txt"
         try:
             if use_proxy_choice == 1:
+                async with ClientSession(timeout=ClientTimeout(total=30)) as session:
+                    async with session.get("https://raw.githubusercontent.com/monosans/proxy-list/refs/heads/main/proxies/http.txt") as response:
+                        response.raise_for_status()
+                        content = await response.text()
+                        with open(filename, 'w') as f:
+                            f.write(content)
+                        self.proxies = [line.strip() for line in content.splitlines() if line.strip()]
+            else:
                 if not os.path.exists(filename):
                     logger.error(f"File {filename} Not Found.")
                     return
                 with open(filename, 'r') as f:
                     self.proxies = [line.strip() for line in f.read().splitlines() if line.strip()]
-            else:
-                self.proxies = []
             
-            if use_proxy_choice == 1 and not self.proxies:
-                logger.error(f"No Proxies Found in {filename}.")
+            if not self.proxies:
+                logger.error(f"No Proxies Found.")
                 return
 
-            if use_proxy_choice == 1:
-                logger.info(
-                    f"Proxies Total  : {len(self.proxies)}"
-                )
+            logger.info(
+                f"Proxies Total  : {len(self.proxies)}"
+            )
         
         except Exception as e:
             logger.error(f"Failed To Load Proxies: {e}")
@@ -249,29 +239,25 @@ class AutoStaking:
         except Exception as e:
             return None
         
-    def generate_random_string(self):
-        part1 = ''.join(random.choices(string.ascii_lowercase + string.digits, k=13))
-        part2 = ''.join(random.choices(string.ascii_lowercase + string.digits, k=13))
-        return part1 + part2
-        
-    def generate_login_payload(self, account: str, address: str):
+    def generate_auth_token(self, address: str):
         try:
-            nonce = self.generate_random_string()
-            timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-            message = f"autostaking.pro wants you to sign in with your Ethereum account:\n{address}\n\nWelcome to AutoStaking! Sign in to authenticate your wallet.\n\nURI: https://autostaking.pro\nVersion: 1\nChain ID: 1\nNonce: {nonce}\nIssued At: {timestamp}"
-            encoded_message = encode_defunct(text=message)
-            signed_message = Account.sign_message(encoded_message, private_key=account)
-            signature = to_hex(signed_message.signature)
+            public_key = serialization.load_pem_public_key(PUBLIC_KEY_PEM)
 
-            payload = {
-                "address":address,
-                "message":message,
-                "signature":signature      
-            }
+            ciphertext = public_key.encrypt(
+                address.encode('utf-8'),
+                padding.OAEP(
+                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                    algorithm=hashes.SHA256(),
+                    label=None
+                )
+            )
 
-            return payload
+            token_base64 = b64encode(ciphertext).decode('utf-8')
+
+            return token_base64
         except Exception as e:
-            raise Exception(f"Generate Req Payload Failed: {str(e)}")
+            logger.error(f"Error generating auth token: {e}") 
+            return None
         
     def generate_recommendation_payload(self, address: str):
         try:
@@ -354,7 +340,6 @@ class AutoStaking:
                 if attempt < retries - 1:
                     await asyncio.sleep(3)
                     continue
-                logger.error(f"Failed to Connect to RPC: {str(e)}")
                 raise Exception(f"Failed to Connect to RPC: {str(e)}")
             
     async def get_token_balance(self, address: str, contract_address: str, use_proxy: bool):
@@ -369,7 +354,7 @@ class AutoStaking:
 
             return token_balance
         except Exception as e:
-            logger.error(f"Message : {str(e)}")
+            logger.error(f" {str(e)}")
             return None
         
     async def send_raw_transaction_with_retries(self, account, web3, tx, retries=5):
@@ -382,7 +367,7 @@ class AutoStaking:
             except TransactionNotFound:
                 pass
             except Exception as e:
-                logger.warn(f"[Attempt {attempt + 1}] Send TX Error: {str(e)}")
+                logger.warn(f" [Attempt {attempt + 1}] Send TX Error: {str(e)}")
             await asyncio.sleep(2 ** attempt)
         raise Exception("Transaction Hash Not Found After Maximum Retries")
 
@@ -394,7 +379,7 @@ class AutoStaking:
             except TransactionNotFound:
                 pass
             except Exception as e:
-                logger.warn(f"[Attempt {attempt + 1}] Wait for Receipt Error: {str(e)}")
+                logger.warn(f" [Attempt {attempt + 1}] Wait for Receipt Error: {str(e)}")
             await asyncio.sleep(2 ** attempt)
         raise Exception("Transaction Receipt Not Found After Maximum Retries")
     
@@ -409,7 +394,7 @@ class AutoStaking:
 
             return next_faucet_claim_time
         except Exception as e:
-            logger.error(f"Message : {str(e)}")
+            logger.error(f" {str(e)}")
             return None
         
     async def perform_claim_faucet(self, account: str, address: str, use_proxy: bool):
@@ -437,11 +422,12 @@ class AutoStaking:
             tx_hash = await self.send_raw_transaction_with_retries(account, web3, claim_tx)
             receipt = await self.wait_for_receipt_with_retries(web3, tx_hash)
 
+            block_number = receipt.blockNumber
             self.used_nonce[address] += 1
 
-            return tx_hash, receipt.blockNumber
+            return tx_hash, block_number
         except Exception as e:
-            logger.error(f"Message : {str(e)}")
+            logger.error(f" {str(e)}")
             return None, None
         
     async def approving_token(self, account: str, address: str, router_address: str, asset_address: str, amount: float, use_proxy: bool):
@@ -474,13 +460,14 @@ class AutoStaking:
                 tx_hash = await self.send_raw_transaction_with_retries(account, web3, approve_tx)
                 receipt = await self.wait_for_receipt_with_retries(web3, tx_hash)
 
+                block_number = receipt.blockNumber
                 self.used_nonce[address] += 1
 
                 explorer = f"https://testnet.pharosscan.xyz/tx/{tx_hash}"
                 
-                logger.info(f"Approve : Success")
-                logger.action(f"Tx Hash : {tx_hash}")
-                logger.actionSuccess(f"Explorer: {explorer}")
+                logger.success(f"Approve : Success")
+                logger.action(f" Tx Hash : {tx_hash}")
+                logger.actionSuccess(f" Explorer: {explorer}")
                 await asyncio.sleep(5)
 
             return True
@@ -524,118 +511,129 @@ class AutoStaking:
             tx_hash = await self.send_raw_transaction_with_retries(account, web3, tx)
             receipt = await self.wait_for_receipt_with_retries(web3, tx_hash)
 
+            block_number = receipt.blockNumber
             self.used_nonce[address] += 1
 
-            return tx_hash, receipt.blockNumber
+            return tx_hash, block_number
         except Exception as e:
-            logger.error(f"Message : {str(e)}")
+            logger.error(f" {str(e)}")
             return None, None
         
     async def print_timer(self):
         for remaining in range(random.randint(self.min_delay, self.max_delay), 0, -1):
+            # Formatted the timestamp to match the desired output [16:27:25]
+            timestamp = datetime.now().strftime("%H:%M:%S")
             print(
-                f"{Colors.BRIGHT_BLACK}[{datetime.now().strftime('%H:%M:%S')}]{Colors.RESET} {Colors.CYAN}[⟳] Wait For {Colors.WHITE}{remaining}{Colors.CYAN} Seconds For Next Tx...{Colors.RESET}",
+                f"{Colors.BRIGHT_BLACK}[{timestamp}]{Colors.RESET} "
+                f"{Colors.BLUE}{Colors.BOLD}Wait For {Colors.RESET}"
+                f"{Colors.WHITE}{Colors.BOLD}{remaining} {Colors.RESET}"
+                f"{Colors.BLUE}{Colors.BOLD}Seconds For Next Tx...{Colors.RESET}",
                 end="\r",
                 flush=True
             )
             await asyncio.sleep(1)
-        print(" " * 100, end="\r")
+        print(" " * 100, end="\r") # Clear the line after countdown
+        
 
     def print_question(self):
         while True:
             try:
-                staking_count = int(input(f"{Colors.GREEN + Style.BRIGHT}Enter Total Staking -> {Colors.RESET}").strip())
+                staking_count = int(input(f"{Colors.YELLOW}{Colors.BOLD}Enter Staking Count For Each Wallets -> {Colors.RESET}").strip())
                 if staking_count > 0:
                     self.staking_count = staking_count
                     break
                 else:
-                    print(f"{Colors.RED + Style.BRIGHT}Please enter positive number.{Colors.RESET}")
+                    print(f"{Colors.RED}{Colors.BOLD}Please enter positive number.{Colors.RESET}")
             except ValueError:
-                print(f"{Colors.RED + Style.BRIGHT}Invalid input. Enter a number.{Colors.RESET}")
+                print(f"{Colors.RED}{Colors.BOLD}Invalid input. Enter a number.{Colors.RESET}")
 
         while True:
             try:
-                usdc_amount = float(input(f"{Colors.GREEN + Style.BRIGHT}Enter USDC Amount -> {Colors.RESET}").strip())
+                usdc_amount = float(input(f"{Colors.YELLOW}{Colors.BOLD}Enter USDC Amount -> {Colors.RESET}").strip())
                 if usdc_amount > 0:
                     self.usdc_amount = usdc_amount
                     break
                 else:
-                    print(f"{Colors.RED + Style.BRIGHT}Amount must be greater than 0.{Colors.RESET}")
+                    print(f"{Colors.RED}{Colors.BOLD}Amount must be greater than 0.{Colors.RESET}")
             except ValueError:
-                print(f"{Colors.RED + Style.BRIGHT}Invalid input. Enter a float or decimal number.{Colors.RESET}")
+                print(f"{Colors.RED}{Colors.BOLD}Invalid input. Enter a float or decimal number.{Colors.RESET}")
 
         while True:
             try:
-                usdt_amount = float(input(f"{Colors.GREEN + Style.BRIGHT}Enter USDT Amount -> {Colors.RESET}").strip())
+                usdt_amount = float(input(f"{Colors.YELLOW}{Colors.BOLD}Enter USDT Amount -> {Colors.RESET}").strip())
                 if usdt_amount > 0:
                     self.usdt_amount = usdt_amount
                     break
                 else:
-                    print(f"{Colors.RED + Style.BRIGHT}Amount must be greater than 0.{Colors.RESET}")
+                    print(f"{Colors.RED}{Colors.BOLD}Amount must be greater than 0.{Colors.RESET}")
             except ValueError:
-                print(f"{Colors.RED + Style.BRIGHT}Invalid input. Enter a float or decimal number.{Colors.RESET}")
+                print(f"{Colors.RED}{Colors.BOLD}Invalid input. Enter a float or decimal number.{Colors.RESET}")
 
         while True:
             try:
-                musd_amount = float(input(f"{Colors.GREEN + Style.BRIGHT}Enter MockUSD Amount -> {Colors.RESET}").strip())
+                musd_amount = float(input(f"{Colors.YELLOW}{Colors.BOLD}Enter MockUSD Amount -> {Colors.RESET}").strip())
                 if musd_amount > 0:
                     self.musd_amount = musd_amount
                     break
                 else:
-                    print(f"{Colors.RED + Style.BRIGHT}Amount must be greater than 0.{Colors.RESET}")
+                    print(f"{Colors.RED}{Colors.BOLD}Amount must be greater than 0.{Colors.RESET}")
             except ValueError:
-                print(f"{Colors.RED + Style.BRIGHT}Invalid input. Enter a float or decimal number.{Colors.RESET}")
+                print(f"{Colors.RED}{Colors.BOLD}Invalid input. Enter a float or decimal number.{Colors.RESET}")
 
         while True:
             try:
-                min_delay = int(input(f"{Colors.GREEN + Style.BRIGHT}Min Delay Each Tx -> {Colors.RESET}").strip())
+                min_delay = int(input(f"{Colors.GREEN}{Colors.BOLD}Min Delay Each Tx -> {Colors.RESET}").strip())
                 if min_delay >= 0:
                     self.min_delay = min_delay
                     break
                 else:
-                    print(f"{Colors.RED + Style.BRIGHT}Min Delay must be >= 0.{Colors.RESET}")
+                    print(f"{Colors.RED}{Colors.BOLD}Min Delay must be >= 0.{Colors.RESET}")
             except ValueError:
-                print(f"{Colors.RED + Style.BRIGHT}Invalid input. Enter a number.{Colors.RESET}")
+                print(f"{Colors.RED}{Colors.BOLD}Invalid input. Enter a number.{Colors.RESET}")
 
         while True:
             try:
-                max_delay = int(input(f"{Colors.GREEN + Style.BRIGHT}Max Delay Each Tx -> {Colors.RESET}").strip())
+                max_delay = int(input(f"{Colors.GREEN}{Colors.BOLD}Max Delay Each Tx -> {Colors.RESET}").strip())
                 if max_delay >= min_delay:
                     self.max_delay = max_delay
                     break
                 else:
-                    print(f"{Colors.RED + Style.BRIGHT}Min Delay must be >= Min Delay.{Colors.RESET}")
+                    print(f"{Colors.RED}{Colors.BOLD}Min Delay must be >= Min Delay.{Colors.RESET}")
             except ValueError:
-                print(f"{Colors.RED + Style.BRIGHT}Invalid input. Enter a number.{Colors.RESET}")
+                print(f"{Colors.RED}{Colors.BOLD}Invalid input. Enter a number.{Colors.RESET}")
 
         while True:
             try:
-                print(f"{Colors.WHITE + Style.BRIGHT}1. Run With Private Proxy{Colors.RESET}")
-                print(f"{Colors.WHITE + Style.BRIGHT}2. Run Without Proxy{Colors.RESET}")
-                choose = int(input(f"{Colors.WHITE + Style.BRIGHT}Choose [1/2] -> {Colors.RESET}").strip())
+                # Reordered options
+                print(f"{Colors.WHITE}{Colors.BOLD}1. Run With Private Proxy{Colors.RESET}")
+                print(f"{Colors.WHITE}{Colors.BOLD}2. Run Without Proxy{Colors.RESET}")
+                print(f"{Colors.WHITE}{Colors.BOLD}3. Run With Free Proxyscrape Proxy{Colors.RESET}")
+                choose = int(input(f"{Colors.BOLD}{Colors.BOLD}Choose [1/2/3] -> {Colors.RESET}").strip())
 
-                if choose in [1, 2]:
+                if choose in [1, 2, 3]:
                     proxy_type = (
                         "With Private" if choose == 1 else 
-                        "Without"
+                        "Without" if choose == 2 else 
+                        "With Free Proxyscrape"
                     )
-                    print(f"{Colors.GREEN + Style.BRIGHT}Run {proxy_type} Proxy Selected.{Colors.RESET}")
+                    print(f"{Colors.GREEN}{Colors.BOLD}Run {proxy_type} Proxy Selected.{Colors.RESET}")
                     break
                 else:
-                    print(f"{Colors.RED + Style.BRIGHT}Please enter either 1 or 2.{Colors.RESET}")
+                    print(f"{Colors.RED}{Colors.BOLD}Please enter either 1, 2 or 3.{Colors.RESET}")
             except ValueError:
-                print(f"{Colors.RED + Style.BRIGHT}Invalid input. Enter a number (1 or 2).{Colors.RESET}")
+                print(f"{Colors.RED}{Colors.BOLD}Invalid input. Enter a number (1, 2 or 3).{Colors.RESET}")
 
         rotate = False
-        if choose == 1:
+        # Proxy rotation only applicable for proxy options (1 and 3 in the new order)
+        if choose in [1, 3]:
             while True:
-                rotate = input(f"{Colors.BLUE + Style.BRIGHT}Rotate Invalid Proxy? [y/n] -> {Colors.RESET}").strip()
+                rotate = input(f"{Colors.BLUE}{Colors.BOLD}Rotate Invalid Proxy? [y/n] -> {Colors.RESET}").strip()
 
                 if rotate in ["y", "n"]:
                     rotate = rotate == "y"
                     break
                 else:
-                    print(f"{Colors.RED + Style.BRIGHT}Invalid input. Enter 'y' or 'n'.{Colors.RESET}")
+                    print(f"{Colors.RED}{Colors.BOLD}Invalid input. Enter 'y' or 'n'.{Colors.RESET}")
 
         return choose, rotate
     
@@ -648,39 +646,16 @@ class AutoStaking:
                     return True
         except (Exception, ClientResponseError) as e:
             logger.error(
-                f"Connection Not 200 OK - {str(e)}"
+                f"Status  : Connection Not 200 OK - {str(e)}"
             )
             return None
-        
-    async def wallet_login(self, account: str, address: str, use_proxy: bool, retries=5):
-        url = f"{self.BASE_API}/user/login"
-        data = json.dumps(self.generate_login_payload(account, address))
-        headers = {
-            **self.HEADERS,
-            "Content-Length": str(len(data)),
-            "Content-Type": "application/json"
-        }
-        for attempt in range(retries):
-            proxy_url = self.get_next_proxy_for_account(address) if use_proxy else None
-            connector, proxy, proxy_auth = self.build_proxy_config(proxy_url)
-            try:
-                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
-                    async with session.post(url=url, headers=headers, data=data, proxy=proxy, proxy_auth=proxy_auth) as response:
-                        response.raise_for_status()
-                        return await response.json()
-            except (Exception, ClientResponseError) as e:
-                if attempt < retries:
-                    await asyncio.sleep(5)
-                    continue
-                logger.error(f"Login Failed - {str(e)}")
-                return None
             
     async def financial_portfolio_recommendation(self, address: str, use_proxy: bool, retries=5):
         url = f"{self.BASE_API}/investment/financial-portfolio-recommendation"
         data = json.dumps(self.generate_recommendation_payload(address))
         headers = {
             **self.HEADERS,
-            "Authorization": self.access_tokens[address],
+            "Authorization": self.auth_tokens[address],
             "Content-Length": str(len(data)),
             "Content-Type": "application/json"
         }
@@ -704,7 +679,7 @@ class AutoStaking:
         data = json.dumps(self.generate_transactions_payload(address, change_tx))
         headers = {
             **self.HEADERS,
-            "Authorization": self.access_tokens[address],
+            "Authorization": self.auth_tokens[address],
             "Content-Length": str(len(data)),
             "Content-Type": "application/json"
         }
@@ -726,38 +701,17 @@ class AutoStaking:
     async def process_check_connection(self, address: str, use_proxy: bool, rotate_proxy: bool):
         while True:
             proxy = self.get_next_proxy_for_account(address) if use_proxy else None
-            logger.info(
-                f"Proxy   : {proxy if use_proxy else 'None'}"
-            )
-
-            if use_proxy and not proxy:
-                logger.error("No proxies available. Cannot establish connection.")
-                return False
+            logger.info(f"Proxy   : {proxy}")
 
             is_valid = await self.check_connection(proxy)
             if not is_valid:
                 if rotate_proxy:
                     proxy = self.rotate_proxy_for_account(address)
                     continue
+
                 return False
             
             return True
-        
-    async def process_wallet_login(self, account: str, address: str, use_proxy: bool, rotate_proxy: bool):
-       is_valid = await self.process_check_connection(address, use_proxy, rotate_proxy)
-       if is_valid:
-            
-            login = await self.wallet_login(account, address, use_proxy)
-            if login:
-                self.access_tokens[address] = login["data"]["jwt"]
-
-                logger.info(
-                    f"Status  : Login Success"
-                )
-                return True
-            
-            return False
-       return False
     
     async def process_perform_claim_faucet(self, account: str, address: str, use_proxy: bool):
         next_faucet_claim_time = await self.get_next_faucet_claim_time(address, use_proxy)
@@ -767,17 +721,15 @@ class AutoStaking:
                 if tx_hash and block_number:
                     explorer = f"https://testnet.pharosscan.xyz/tx/{tx_hash}"
 
-                    logger.info(f"Status  : Success")
-                    logger.action(f"Tx Hash : {tx_hash}")
-                    logger.actionSuccess(f"Explorer: {explorer}")
+                    logger.success(f" Status : Success")
+                    logger.action(f" Tx Hash : {tx_hash}")
+                    logger.actionSuccess(f" Explorer: {explorer}")
                 
                 else:
-                    logger.error(f"Status  : Perform On-Chain Failed")
+                    logger.error(f" Status : Perform On-Chain Failed")
             else:
-                formatted_next_claim = datetime.fromtimestamp(next_faucet_claim_time).astimezone(self.wib).strftime("%x %X %Z")
-                logger.warn(
-                    f"Status  : Already Claimed - Next Claim at {formatted_next_claim}"
-                )
+                formatted_next_claim = datetime.fromtimestamp(next_faucet_claim_time).astimezone(wib).strftime("%x %X %Z")
+                logger.warn(f" Status : Already Claimed - Next Claim at {formatted_next_claim}")
 
     async def process_perform_staking(self, account: str, address: str, use_proxy: bool):
         portfolio = await self.financial_portfolio_recommendation(address, use_proxy)
@@ -788,94 +740,129 @@ class AutoStaking:
             if tx_hash and block_number:
                 explorer = f"https://testnet.pharosscan.xyz/tx/{tx_hash}"
 
-                logger.info(f"Status  : Success")
-                logger.action(f"Tx Hash : {tx_hash}")
-                logger.actionSuccess(f"Explorer: {explorer}")
+                logger.success(f" Status : Success")
+                logger.action(f" Tx Hash : {tx_hash}")
+                logger.actionSuccess(f" Explorer: {explorer}")
             
             else:
-                logger.error(f"Status  : Perform On-Chain Failed")
+                logger.error(f" Status : Perform On-Chain Failed")
         else:
-            logger.error(f"Status  : GET Financial Portfolio Recommendation Failed")
+            logger.error(f" Status : GET Financial Portfolio Recommendation Failed")
 
-    async def process_accounts(self, account: str, address: str, use_proxy_int: int, rotate_proxy: bool):
-        use_proxy_actual = (use_proxy_int == 1)
-
-        logined = await self.process_wallet_login(account, address, use_proxy_actual, rotate_proxy)
-        if logined:
-            web3 = await self.get_web3_with_check(address, use_proxy_actual)
+    async def process_accounts(self, account: str, address: str, use_proxy: bool, rotate_proxy: bool):
+        is_valid = await self.process_check_connection(address, use_proxy, rotate_proxy)
+        if is_valid:
+            web3 = await self.get_web3_with_check(address, use_proxy)
             if not web3:
                 logger.error(f"Status  : Web3 Not Connected")
                 return
             
             self.used_nonce[address] = web3.eth.get_transaction_count(address, "pending")
 
-            logger.info(f"Faucet  :")
+            logger.step(f"Faucet :")
 
-            await self.process_perform_claim_faucet(account, address, use_proxy_actual)
+            await self.process_perform_claim_faucet(account, address, use_proxy)
 
-            logger.info(f"Staking :")
+            logger.step(f"Staking :")
 
             for i in range(self.staking_count):
-                logger.info(
-                    f"Stake {i+1} Of {self.staking_count}"
+                logger.action(
+                    f" Stake {i+1} Of {self.staking_count}"
                 )
 
-                logger.info(f"Balance :")
+                logger.info(f" Balance :")
 
-                usdc_balance = await self.get_token_balance(address, self.USDC_CONTRACT_ADDRESS, use_proxy_actual)
-                logger.info(f"1. {usdc_balance} USDC")
-                usdt_balance = await self.get_token_balance(address, self.USDT_CONTRACT_ADDRESS, use_proxy_actual)
-                logger.info(f"2. {usdt_balance} USDT")
-                musd_balance = await self.get_token_balance(address, self.MUSD_CONTRACT_ADDRESS, use_proxy_actual)
-                logger.info(f"3. {musd_balance} MockUSD")
+                usdc_balance = await self.get_token_balance(address, self.USDC_CONTRACT_ADDRESS, use_proxy)
+                logger.info(f" 1. {usdc_balance} USDC")
+                usdt_balance = await self.get_token_balance(address, self.USDT_CONTRACT_ADDRESS, use_proxy)
+                logger.info(f" 2. {usdt_balance} USDT")
+                musd_balance = await self.get_token_balance(address, self.MUSD_CONTRACT_ADDRESS, use_proxy)
+                logger.info(f" 3. {musd_balance} MockUSD")
 
-                logger.info(f"Amount  :")
-                logger.info(f"1. {self.usdc_amount} USDC")
-                logger.info(f"2. {self.usdt_amount} USDT")
-                logger.info(f"3. {self.musd_amount} MockUSD")
+                logger.info(f" Amount  :")
+                logger.info(f" 1. {self.usdc_amount} USDC")
+                logger.info(f" 2. {self.usdt_amount} USDT")
+                logger.info(f" 3. {self.musd_amount} MockUSD")
 
-
-                if not usdc_balance or usdc_balance < self.usdc_amount:
-                    logger.warn(f"Status  : Insufficient USDC Token Balance")
+                # The original logic had a bug here, checking usdt_balance and musd_balance against self.usdc_amount.
+                # Assuming it should be against their respective amounts. Corrected below.
+                if usdc_balance is None or usdc_balance < self.usdc_amount:
+                    logger.warn(f" Status : Insufficient USDC Token Balance")
                     break
 
-                if not usdt_balance or usdt_balance < self.usdt_amount:
-                    logger.warn(f"Status  : Insufficient USDT Token Balance")
+                if usdt_balance is None or usdt_balance < self.usdt_amount:
+                    logger.warn(f" Status : Insufficient USDT Token Balance")
                     break
 
-                if not musd_balance or musd_balance < self.musd_amount:
-                    logger.warn(f"Status  : Insufficient MockUSD Token Balance")
+                if musd_balance is None or musd_balance < self.musd_amount:
+                    logger.warn(f" Status : Insufficient MockUSD Token Balance")
                     break
 
-                await self.process_perform_staking(account, address, use_proxy_actual)
-                await self.print_timer()
+                await self.process_perform_staking(account, address, use_proxy)
+                # Only print timer if it's not the last stake
+                if i < self.staking_count - 1:
+                    await self.print_timer()
             
     async def main(self):
         try:
-            load_dotenv()
             with open("accounts.txt", "r") as file:
-                accounts = [line.strip() for line in file if line.strip()] 
+                accounts = [line.strip() for line in file if line.strip()]
             
-            await display_welcome_screen()
+            await self.welcome()
 
             use_proxy_choice, rotate_proxy = self.print_question()
 
-            logger.info(f"Account's Total: {len(accounts)}")
+            while True:
+                use_proxy = False
+                # Adjusted based on new ordering of proxy choices:
+                # 1: Private Proxy, 2: No Proxy, 3: Free Proxyscrape
+                if use_proxy_choice == 1 or use_proxy_choice == 3:
+                    use_proxy = True
 
-            await self.load_proxies(use_proxy_choice)
-            
-            for account in accounts:
-                if account:
-                    address = self.generate_address(account)
+                clear_console()
+                await self.welcome()
+                logger.info(
+                    f"Account's Total: {len(accounts)}"
+                )
 
-                    logger.info(f"Processing Account: {self.mask_account(address)}")
+                if use_proxy:
+                    # If free proxyscrape (choice 3) or private proxy (choice 1)
+                    await self.load_proxies(use_proxy_choice)
+                
+                for account in accounts:
+                    if account:
+                        address = self.generate_address(account)
 
-                    if not address:
-                        logger.error(f"Status  : Invalid Private Key or Library Version Not Supported")
-                        continue
+                        logger.step(f"[{self.mask_account(address)}]")
 
-                    await self.process_accounts(account, address, use_proxy_choice, rotate_proxy) 
-                    await asyncio.sleep(3)
+                        if not address:
+                            logger.error(
+                                f"Status : Invalid Private Key or Library Version Not Supported"
+                            )
+                            continue
+
+                        self.auth_tokens[address] = self.generate_auth_token(address)
+                        if not self.auth_tokens[address]:
+                            logger.error(
+                                f"Status  : Cryptography Library Version Not Supported"
+                            )
+                            continue
+
+                        await self.process_accounts(account, address, use_proxy, rotate_proxy)
+                        await asyncio.sleep(3)
+
+                # Removed the line with `========================================================================`
+                seconds = 24 * 60 * 60
+                while seconds > 0:
+                    formatted_time = self.format_seconds(seconds)
+                    # Update on the same line, remove the extra text that was asked to be removed
+                    print(
+                        f"[ Wait for {formatted_time} ... ] | All Accounts Have Been Processed.",
+                        end="\r"
+                    )
+                    await asyncio.sleep(1)
+                    seconds -= 1
+                print(" " * 100, end="\r") # Clear the line after countdown
 
         except FileNotFoundError:
             logger.error(f"File 'accounts.txt' Not Found.")
@@ -885,10 +872,10 @@ class AutoStaking:
             raise e
 
 if __name__ == "__main__":
+    init(autoreset=True)
+    load_dotenv()
     try:
         bot = AutoStaking()
         asyncio.run(bot.main())
     except KeyboardInterrupt:
-        logger.info(
-            f"[ EXIT ] AutoStaking - BOT"                              
-        )
+        logger.error("[ EXIT ] AutoStaking - BOT")

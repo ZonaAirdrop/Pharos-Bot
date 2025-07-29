@@ -1,17 +1,23 @@
-from web3 import Web3
-from web3.exceptions import TransactionNotFound
-from eth_account import Account
-from aiohttp import ClientResponseError, ClientSession, ClientTimeout, BasicAuth
-from aiohttp_socks import ProxyConnector
-from fake_useragent import FakeUserAgent
+import requests
+import time
+import random
+import websocket
+import json
+import pytz
 from datetime import datetime
-from colorama import *
-import asyncio, random, json, re, os, pytz
+from web3 import Web3
+from eth_account import Account
+from colorama import Fore, Style, init
+from functools import wraps
+from supabase import create_client
+import os
+import asyncio
 from dotenv import load_dotenv
 
 init(autoreset=True)
 load_dotenv()
 
+# === Terminal Color Setup ===
 class Colors:
     RESET = Style.RESET_ALL
     BOLD = Style.BRIGHT
@@ -25,7 +31,6 @@ class Colors:
     BRIGHT_MAGENTA = Fore.LIGHTMAGENTA_EX
     BRIGHT_WHITE = Fore.LIGHTWHITE_EX
     BRIGHT_BLACK = Fore.LIGHTBLACK_EX
-    BLUE = Fore.BLUE
 
 class Logger:
     @staticmethod
@@ -46,10 +51,10 @@ class Logger:
     @staticmethod
     def step(msg): Logger.log("STEP", "➤", msg, Colors.WHITE)
     @staticmethod
-    def action(msg): Logger.log("ACTION", "↪️", msg, Colors.CYAN)
+    def action(msg): Logger.log("ACTION", "✓", msg, Colors.CYAN) # Changed emoji to checkmark
     @staticmethod
-    def actionSuccess(msg): Logger.log("ACTION", "✅", msg, Colors.GREEN)
-        
+    def actionSuccess(msg): Logger.log("ACTION", "✓", msg, Colors.GREEN) # Changed emoji to checkmark
+
 logger = Logger()
 
 def clear_console():
@@ -60,963 +65,600 @@ async def display_welcome_screen():
     now = datetime.now()
     print(f"{Colors.BRIGHT_GREEN}{Colors.BOLD}")
     print("  ╔══════════════════════════════════════╗")
-    print("  ║           Brokex  B O T            ║")
+    print("  ║           Brokex   B O T            ║")
     print("  ║                                      ║")
-    print(f"  ║      {Colors.YELLOW}{now.strftime('%H:%M:%S %d.%m.%Y')}{Colors.BRIGHT_GREEN}          ║")
+    print(f"  ║     {Colors.YELLOW}{now.strftime('%H:%M:%S %d.%m.%Y')}{Colors.BRIGHT_GREEN}           ║")
     print("  ║                                      ║")
-    print("  ║      PHAROS TESTNET AUTOMATION        ║")
-    print(f"  ║   {Colors.BRIGHT_WHITE}ZonaAirdrop{Colors.BRIGHT_GREEN}  |  t.me/ZonaAirdr0p   ║")
+    print("  ║     Pharos TESTNET AUTOMATION         ║")
+    print(f"  ║   {Colors.BRIGHT_WHITE}ZonaAirdrop{Colors.BRIGHT_GREEN}   |   t.me/ZonaAirdr0p   ║")
     print("  ╚══════════════════════════════════════╝")
     print(f"{Colors.RESET}")
     await asyncio.sleep(1)
 
-
-wib = pytz.timezone('Asia/Jakarta')
-
-class Brokex:
-    def __init__(self) -> None:
-        self.HEADERS = {
-            "Accept": "*/*",
-            "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Origin": "https://app.brokex.trade",
-            "Referer": "https://app.brokex.trade/",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "cross-site",
-            "User-Agent": FakeUserAgent().random
-        }
-        self.BASE_API = "https://proofcrypto-production.up.railway.app"
-        self.RPC_URL = "https://api.zan.top/node/v1/pharos/testnet/54b49326c9f44b6e8730dc5dd4348421"
-        self.USDT_CONTRACT_ADDRESS = "0x78ac5e2d8a78a8b8e6d10c7b7274b03c10c91cef"
-        self.CLAIM_ROUTER_ADDRESS = "0x50576285BD33261DEe1aD99BF766CD8249520a58"
-        self.TRADE_ROUTER_ADDRESS = "0xDe897635870b3Dd2e097C09f1cd08841DBc3976a"
-        self.POOL_ROUTER_ADDRESS = "0x9A88d07850723267DB386C681646217Af7e220d7"
-        self.ERC20_CONTRACT_ABI = json.loads('''[
-            {"type":"function","name":"balanceOf","stateMutability":"view","inputs":[{"name":"address","type":"address"}],"outputs":[{"name":"","type":"uint256"}]},
-            {"type":"function","name":"allowance","stateMutability":"view","inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"outputs":[{"name":"","type":"uint256"}]},
-            {"type":"function","name":"approve","stateMutability":"nonpayable","inputs":[{"name":"spender","type":"address"},{"name":"amount","type":"uint256"}],"outputs":[{"name":"","type":"bool"}]},
-            {"type":"function","name":"decimals","stateMutability":"view","inputs":[],"outputs":[{"name":"","type":"uint8"}]},
-            {"type":"function","name":"hasClaimed","stateMutability":"view","inputs":[{"internalType":"address","name":"","type":"address"}],"outputs":[{"internalType":"bool","name":"","type":"bool"}]},
-            {"type":"function","name":"claim","stateMutability":"nonpayable","inputs":[],"outputs":[]}
-        ]''')
-        self.BROKEX_CONTRACT_ABI = [
-            {
-                "name": "openPosition",
-                "type": "function",
-                "stateMutability": "nonpayable",
-                "inputs": [
-                    { "internalType": "uint256", "name": "idx", "type": "uint256" },
-                    { "internalType": "bytes",   "name": "proof", "type": "bytes" },
-                    { "internalType": "bool",    "name": "isLong", "type": "bool" },
-                    { "internalType": "uint256", "name": "lev", "type": "uint256" },
-                    { "internalType": "uint256", "name": "size", "type": "uint256" },
-                    { "internalType": "uint256", "name": "sl", "type": "uint256" },
-                    { "internalType": "uint256", "name": "tp", "type": "uint256" }
-                ],
-                "outputs": [
-                    { "internalType": "uint256", "name": "", "type": "uint256" }
-                ]
-            },
-            {
-                "name": "depositLiquidity",
-                "type": "function",
-                "stateMutability": "nonpayable",
-                "inputs": [
-                    { "internalType": "uint256", "name": "usdtAmount", "type": "uint256" }
-                ],
-                "outputs": []
-            },
-            {
-                "name": "balanceOf",
-                "type": "function",
-                "stateMutability": "view",
-                "inputs": [
-                    { "internalType": "address", "name": "account", "type": "address" }
-                ],
-                "outputs": [
-                    { "internalType": "uint256", "name": "", "type": "uint256" }
-                ],
-            },
-            {
-                "name": "withdrawLiquidity",
-                "type": "function",
-                "stateMutability": "nonpayable",
-                "inputs": [
-                    { "internalType": "uint256", "name": "lpAmount", "type":"uint256" }
-                ],
-                "outputs": []
-            }
-        ]
-        self.pairs = [
-            { "name": "BTC_USDT", "desimal": 0 },
-            { "name": "ETH_USDT", "desimal": 1 },
-            { "name": "SOL_USDT", "desimal": 10 },
-            { "name": "XRP_USDT", "desimal": 14 },
-        ]
-        self.proxies = []
-        self.proxy_index = 0
-        self.account_proxies = {}
-        self.used_nonce = {}
-        self.trade_count = 0
-        self.trade_amount = 0
-        self.deposit_lp_count = 0
-        self.deposit_lp_amount = 0
-        self.withdraw_lp_count = 0
-        self.withdraw_lp_amount = 0
-        self.lp_option = 0
-        self.min_delay = 0
-        self.max_delay = 0
-
-    def log(self, message):
-        logger.info(message)
+class BrokexBot:
+    def __init__(self, private_key=None):
+        self.private_key = private_key
+        self.account = Account.from_key(private_key) if private_key else None
+        self.wallet_address = self.account.address if self.account else None
+        self.RPC_URL = "https://testnet.dplabs-internal.com"
+        self.CHAIN_ID = 688688
+        self.MAX_RETRIES = 5
+        self.RETRY_BASE_DELAY = 2
+        self.USDT_ADDRESS = Web3.to_checksum_address("0x78ac5e2d8a78a8b8e6d10c7b7274b03c10c91cef")
+        self.BROKEX_ADDRESS = Web3.to_checksum_address("0xde897635870b3dd2e097c09f1cd08841dbc3976a")
+        self.LIQUIDITY_CONTRACT_ADDRESS = Web3.to_checksum_address("0x9a88d07850723267db386c681646217af7e220d7")
+        self.ROUTER_CONTRACT = Web3.to_checksum_address("0x50576285bd33261dee1ad99bf766cd8249520a58")
+        self.ORACLE_PROOF_URL = "https://proofcrypto-production.up.railway.app/proof?pairs={}"
+        self.USDT_DECIMALS = 6
+        self.MIN_USDT_BALANCE = 10
+        self.MAX_UINT256 = 2**256 - 1
+        self.GAS_LIMIT = 300000
+        self.GAS_PRICE = Web3.to_wei(5, 'gwei')
+        self.WEBSOCKET_URL = "wss://wss-production-9302.up.railway.app"
+        self.SUPABASE_URL = "https://yaikidiqvtxiqtrawvgf.supabase.co"
+        self.SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhaWtpZGlxdnR4aXF0cmF3dmdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM3MDI3MzcsImV4cCI6MjA1OTI3ODczN30.z2gZvFpA5HMIODCpjXJFNX0amE3V5MqAgJSrIr7jS1Y"
+        self.STALE_ORDER_DEVIATION_PCT = 15
+        self.nonce_cache = {}
+        self.asset_data = {}
+        self.USDT_ABI = json.loads('[{"constant":true,"inputs":[{"name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":true,"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"type":"function"},{"constant":false,"inputs":[{"name":"spender","type":"address"},{"name":"value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"}]')
+        self.BROKEX_ABI = json.loads('[{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getUserOpenIds","outputs":[{"internalType":"uint256[]","name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"id","type":"uint256"}],"name":"getOpenById","outputs":[{"components":[{"internalType":"address","name":"trader","type":"address"},{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"uint256","name":"assetIndex","type":"uint256"},{"internalType":"bool","name":"isLong","type":"bool"},{"internalType":"uint256","name":"leverage","type":"uint256"},{"internalType":"uint256","name":"openPrice","type":"uint256"},{"internalType":"uint256","name":"sizeUsd","type":"uint256"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"stopLossPrice","type":"uint256"},{"internalType":"uint256","name":"takeProfitPrice","type":"uint256"},{"internalType":"uint256","name":"liquidationPrice","type":"uint256"}],"internalType":"struct IBrokexStorage.Open","name":"","type":"tuple"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"assetIndex","type":"uint256"},{"internalType":"bool","name":"isLong","type":"bool"},{"internalType":"uint256","name":"leverage","type":"uint256"},{"internalType":"uint256","name":"orderPrice","type":"uint256"},{"internalType":"uint256","name":"sizeUsd","type":"uint256"},{"internalType":"uint256","name":"stopLoss","type":"uint256"},{"internalType":"uint256","name":"takeProfit","type":"uint256"}],"name":"placeOrder","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getUserOrderIds","outputs":[{"internalType":"uint256[]","name":"","type":"uint256[]"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"id","type":"uint256"}],"name":"getOrderById","outputs":[{"components":[{"internalType":"address","name":"trader","type":"address"},{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"uint256","name":"assetIndex","type":"uint256"},{"internalType":"bool","name":"isLong","type":"bool"},{"internalType":"uint256","name":"leverage","type":"uint256"},{"internalType":"uint256","name":"orderPrice","type":"uint256"},{"internalType":"uint256","name":"sizeUsd","type":"uint256"},{"internalType":"uint256","name":"timestamp","type":"uint256"},{"internalType":"uint256","name":"stopLoss","type":"uint256"},{"internalType":"uint256","name":"takeProfit","type":"uint256"},{"internalType":"uint256","name":"limitBucketId","type":"uint256"}],"internalType":"struct IBrokexStorage.Order","name":"","type":"tuple"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"assetIndex","type":"uint256"},{"internalType":"bytes","name":"proof","type":"bytes"},{"internalType":"bool","name":"isLong","type":"bool"},{"internalType":"uint256","name":"leverage","type":"uint256"},{"internalType":"uint256","name":"sizeUsd","type":"uint256"},{"internalType":"uint256","name":"stopLoss","type":"uint256"},{"internalType":"uint256","name":"takeProfit","type":"uint256"}],"name":"openPosition","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"openId","type":"uint256"},{"internalType":"bytes","name":"proof","type":"bytes"}],"name":"closePosition","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"orderId","type":"uint256"}],"name":"cancelOrder","outputs":[],"stateMutability":"nonpayable","type":"function"}]')
+        self.LIQUIDITY_ABI = json.loads('[{"inputs":[{"internalType":"uint256","name":"usdtAmount","type":"uint256"}],"name":"depositLiquidity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"lpAmount","type":"uint256"}],"name":"withdrawLiquidity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getLpPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}]')
+        self.CLAIM_ABI = json.loads('[{"name":"claim","type":"function","stateMutability":"nonpayable","inputs":[],"outputs":[]}]')
+        self.supabase = create_client(self.SUPABASE_URL, self.SUPABASE_KEY)
 
     def clear_terminal(self):
-        clear_console()
+        os.system('cls' if os.name == 'nt' else 'clear')
 
-    def welcome(self):
+    def display_banner(self):
+        # The banner is removed as per the request
         pass
 
-    def format_seconds(self, seconds):
-        hours, remainder = divmod(seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
+    @staticmethod
+    def with_retry(max_retries, base_delay):
+        def decorator(func):
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                for attempt in range(1, max_retries + 1):
+                    try:
+                        return func(*args, **kwargs)
+                    except Exception as e:
+                        logger.warn(f"[Retry {attempt}/{max_retries}] Error: {e}")
+                        if attempt == max_retries:
+                            raise
+                        sleep_time = base_delay * (2 ** (attempt - 1)) + random.uniform(0, 1)
+                        logger.warn(f"Retrying in {sleep_time:.2f} seconds...")
+                        time.sleep(sleep_time)
+            return wrapper
+        return decorator
 
-    async def load_proxies(self, use_proxy_choice: bool):
-        filename = "proxy.txt"
+    @with_retry(max_retries=5, base_delay=2)
+    def connect_web3(self):
+        web3 = Web3(Web3.HTTPProvider(self.RPC_URL))
+        if not web3.is_connected():
+            raise Exception("Failed to connect to RPC")
+        return web3
+
+    @with_retry(max_retries=5, base_delay=2)
+    def wait_tx_receipt_and_status(self, web3, tx_hash):
+        logger.loading(f"Waiting tx receipt: 0x{tx_hash.hex()} ...")
+        receipt = web3.eth.wait_for_transaction_receipt(tx_hash, timeout=180)
+        if receipt.status == 1:
+            logger.success("TX success")
+            return True
+        else:
+            logger.error("TX failed")
+            return False
+
+    @with_retry(max_retries=5, base_delay=2)
+    def get_nonce(self, web3, wallet):
+        nonce = web3.eth.get_transaction_count(wallet, 'pending')
+        self.nonce_cache[wallet] = max(self.nonce_cache.get(wallet, nonce), nonce)
+        return self.nonce_cache[wallet]
+
+    @with_retry(max_retries=5, base_delay=2)
+    def send_raw_tx(self, web3, signed_tx):
+        return web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+    @with_retry(max_retries=5, base_delay=2)
+    def update_asset_data_from_websocket(self):
+        logger.loading("Connecting to WebSocket to update asset data...")
         try:
-            if use_proxy_choice == 1: # Now corresponds to private proxy
-                if not os.path.exists(filename):
-                    self.log(f"{Colors.RED + Colors.BOLD}File {filename} Not Found.{Colors.RESET}")
-                    return
-                with open(filename, 'r') as f:
-                    self.proxies = [line.strip() for line in f.read().splitlines() if line.strip()]
-
-            if not self.proxies and use_proxy_choice == 1: # Only for private proxy option
-                self.log(f"{Colors.RED + Colors.BOLD}No Proxies Found.{Colors.RESET}")
-                return
-
-            if self.proxies:
-                self.log(
-                    f"{Colors.GREEN + Colors.BOLD}Proxies Total  : {Colors.RESET}"
-                    f"{Colors.WHITE + Colors.BOLD}{len(self.proxies)}{Colors.RESET}"
-                )
-
-        except Exception as e:
-            self.log(f"{Colors.RED + Colors.BOLD}Failed To Load Proxies: {e}{Colors.RESET}")
-            self.proxies = []
-
-    def check_proxy_schemes(self, proxies):
-        schemes = ["http://", "https://", "socks4://", "socks5://"]
-        if any(proxies.startswith(scheme) for scheme in schemes):
-            return proxies
-        return f"http://{proxies}"
-
-    def get_next_proxy_for_account(self, token):
-        if token not in self.account_proxies:
-            if not self.proxies:
-                return None
-            proxy = self.check_proxy_schemes(self.proxies[self.proxy_index])
-            self.account_proxies[token] = proxy
-            self.proxy_index = (self.proxy_index + 1) % len(self.proxies)
-        return self.account_proxies[token]
-
-    def rotate_proxy_for_account(self, token):
-        if not self.proxies:
-            return None
-        proxy = self.check_proxy_schemes(self.proxies[self.proxy_index])
-        self.account_proxies[token] = proxy
-        self.proxy_index = (self.proxy_index + 1) % len(self.proxies)
-        return proxy
-
-    def build_proxy_config(self, proxy=None):
-        if not proxy:
-            return None, None, None
-
-        if proxy.startswith("socks"):
-            connector = ProxyConnector.from_url(proxy)
-            return connector, None, None
-
-        elif proxy.startswith("http"):
-            match = re.match(r"http://(.*?):(.*?)@(.*)", proxy)
-            if match:
-                username, password, host_port = match.groups()
-                clean_url = f"http://{host_port}"
-                auth = BasicAuth(username, password)
-                return None, clean_url, auth
-            else:
-                return None, proxy, None
-
-        raise Exception("Unsupported Proxy Type.")
-
-    def generate_address(self, account: str):
-        try:
-            account = Account.from_key(account)
-            address = account.address
-
-            return address
-        except Exception as e:
-            return None
-
-    def mask_account(self, account):
-        try:
-            mask_account = account[:6] + '*' * 6 + account[-6:]
-            return mask_account
-        except Exception as e:
-            return None
-
-    async def get_web3_with_check(self, address: str, use_proxy: bool, retries=3, timeout=60):
-        request_kwargs = {"timeout": timeout}
-
-        proxy = self.get_next_proxy_for_account(address) if use_proxy else None
-
-        if use_proxy and proxy:
-            request_kwargs["proxies"] = {"http": proxy, "https": proxy}
-
-        for attempt in range(retries):
-            try:
-                web3 = Web3(Web3.HTTPProvider(self.RPC_URL, request_kwargs=request_kwargs))
-                web3.eth.get_block_number()
-                return web3
-            except Exception as e:
-                if attempt < retries - 1:
-                    await asyncio.sleep(3)
-                    continue
-                raise Exception(f"Failed to Connect to RPC: {str(e)}")
-
-    async def get_token_balance(self, address: str, contract_address: str, use_proxy: bool):
-        try:
-            web3 = await self.get_web3_with_check(address, use_proxy)
-
-            if contract_address == "PHRS":
-                balance = web3.eth.get_balance(address)
-                decimals = 18
-            else:
-                token_contract = web3.eth.contract(address=web3.to_checksum_address(contract_address), abi=self.ERC20_CONTRACT_ABI)
-                balance = token_contract.functions.balanceOf(address).call()
-                decimals = token_contract.functions.decimals().call()
-
-            token_balance = balance / (10 ** decimals)
-
-            return token_balance
-        except Exception as e:
-            logger.error(f"Message: {str(e)}")
-            return None
-
-    async def get_lp_balance(self, address: str, use_proxy: bool):
-        try:
-            web3 = await self.get_web3_with_check(address, use_proxy)
-            token_contract = web3.eth.contract(address=web3.to_checksum_address(self.POOL_ROUTER_ADDRESS), abi=self.BROKEX_CONTRACT_ABI)
-            balance = token_contract.functions.balanceOf(address).call()
-
-            lp_balance = balance / (10 ** 18)
-
-            return lp_balance
-        except Exception as e:
-            logger.error(f"Message: {str(e)}")
-            return None
-
-    async def send_raw_transaction_with_retries(self, account, web3, tx, retries=5):
-        for attempt in range(retries):
-            try:
-                signed_tx = web3.eth.account.sign_transaction(tx, account)
-                raw_tx = web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-                tx_hash = web3.to_hex(raw_tx)
-                return tx_hash
-            except TransactionNotFound:
-                pass
-            except Exception as e:
-                pass
-            await asyncio.sleep(2 ** attempt)
-        raise Exception("Transaction Hash Not Found After Maximum Retries")
-
-    async def wait_for_receipt_with_retries(self, web3, tx_hash, retries=5):
-        for attempt in range(retries):
-            try:
-                receipt = await asyncio.to_thread(web3.eth.wait_for_transaction_receipt, tx_hash, timeout=300)
-                return receipt
-            except TransactionNotFound:
-                pass
-            except Exception as e:
-                pass
-            await asyncio.sleep(2 ** attempt)
-        raise Exception("Transaction Receipt Not Found After Maximum Retries")
-
-    async def check_faucet_status(self, address: str, use_proxy: bool):
-        try:
-            web3 = await self.get_web3_with_check(address, use_proxy)
-
-            contract_address = web3.to_checksum_address(self.CLAIM_ROUTER_ADDRESS)
-            token_contract = web3.eth.contract(address=contract_address, abi=self.ERC20_CONTRACT_ABI)
-            claim_data = token_contract.functions.hasClaimed(web3.to_checksum_address(address)).call()
-
-            return claim_data
-        except Exception as e:
-            logger.error(f"Message: {str(e)}")
-            return None
-
-    async def perform_claim_faucet(self, account: str, address: str, use_proxy: bool):
-        try:
-            web3 = await self.get_web3_with_check(address, use_proxy)
-
-            contract_address = web3.to_checksum_address(self.CLAIM_ROUTER_ADDRESS)
-            token_contract = web3.eth.contract(address=contract_address, abi=self.ERC20_CONTRACT_ABI)
-
-            claim_data = token_contract.functions.claim()
-            estimated_gas = claim_data.estimate_gas({"from": address})
-
-            max_priority_fee = web3.to_wei(1, "gwei")
-            max_fee = max_priority_fee
-
-            claim_tx = claim_data.build_transaction({
-                "from": address,
-                "gas": int(estimated_gas * 1.2),
-                "maxFeePerGas": int(max_fee),
-                "maxPriorityFeePerGas": int(max_priority_fee),
-                "nonce": self.used_nonce[address],
-                "chainId": web3.eth.chain_id,
-            })
-
-            tx_hash = await self.send_raw_transaction_with_retries(account, web3, claim_tx)
-            receipt = await self.wait_for_receipt_with_retries(web3, tx_hash)
-
-            block_number = receipt.blockNumber
-            self.used_nonce[address] += 1
-
-            return tx_hash, block_number
-        except Exception as e:
-            logger.error(f"Message: {str(e)}")
-            return None, None
-
-    async def approving_token(self, account: str, address: str, router_address: str, asset_address: str, amount: float, use_proxy: bool):
-        try:
-            web3 = await self.get_web3_with_check(address, use_proxy)
-
-            spender = web3.to_checksum_address(router_address)
-            token_contract = web3.eth.contract(address=web3.to_checksum_address(asset_address), abi=self.ERC20_CONTRACT_ABI)
-            decimals = token_contract.functions.decimals().call()
-
-            amount_to_wei = int(amount * (10 ** decimals))
-
-            allowance = token_contract.functions.allowance(address, spender).call()
-            if allowance < amount_to_wei:
-                approve_data = token_contract.functions.approve(spender, 2**256 - 1)
-                estimated_gas = approve_data.estimate_gas({"from": address})
-
-                max_priority_fee = web3.to_wei(1, "gwei")
-                max_fee = max_priority_fee
-
-                approve_tx = approve_data.build_transaction({
-                    "from": address,
-                    "gas": int(estimated_gas * 1.2),
-                    "maxFeePerGas": int(max_fee),
-                    "maxPriorityFeePerGas": int(max_priority_fee),
-                    "nonce": self.used_nonce[address],
-                    "chainId": web3.eth.chain_id,
-                })
-
-                tx_hash = await self.send_raw_transaction_with_retries(account, web3, approve_tx)
-                receipt = await self.wait_for_receipt_with_retries(web3, tx_hash)
-
-                block_number = receipt.blockNumber
-                self.used_nonce[address] += 1
-
-                explorer = f"https://testnet.pharosscan.xyz/tx/{tx_hash}"
-
-                logger.success(f"Approve: Success")
-                logger.info(f"Block: {block_number}")
-                logger.action(f"Tx Hash: {tx_hash}")
-                logger.actionSuccess(f"Explorer: {explorer}")
-                await asyncio.sleep(5)
-
+            ws = websocket.create_connection(self.WEBSOCKET_URL, timeout=15)
+            message = ws.recv()
+            ws.close()
+            payload = json.loads(message)
+            temp_data = {}
+            for obj in payload.values():
+                if obj.get('instruments'):
+                    instrument = obj['instruments'][0]
+                    asset_id = obj.get('id')
+                    price = instrument.get('currentPrice')
+                    name = obj.get('name') or instrument.get('tradingPair')
+                    if asset_id is not None and price is not None and name:
+                        if '/' in name: name = name.upper()
+                        temp_data[str(asset_id)] = {"name": name, "price": float(price)}
+            if not temp_data:
+                raise Exception("Asset data from WebSocket is empty.")
+            self.asset_data = temp_data
+            logger.success(f"Data for {len(self.asset_data)} assets successfully updated.")
             return True
         except Exception as e:
-            raise Exception(f"Approving Token Contract Failed: {str(e)}")
-
-    async def perform_trade(self, account: str, address: str, pair: int, is_long: bool, use_proxy: bool, lev=1, sl=0, tp=0):
-        try:
-            web3 = await self.get_web3_with_check(address, use_proxy)
-
-            asset_address = web3.to_checksum_address(self.USDT_CONTRACT_ADDRESS)
-            asset_contract = web3.eth.contract(address=web3.to_checksum_address(asset_address), abi=self.ERC20_CONTRACT_ABI)
-            decimals = asset_contract.functions.decimals().call()
-
-            trade_amount = int(self.trade_amount * (10 ** decimals))
-
-            await self.approving_token(account, address, self.TRADE_ROUTER_ADDRESS, asset_address, trade_amount, use_proxy)
-
-            proof = await self.get_proof(address, pair, use_proxy)
-            if not proof:
-                raise Exception("Failed to Fetch Proof")
-
-            token_contract = web3.eth.contract(address=web3.to_checksum_address(self.TRADE_ROUTER_ADDRESS), abi=self.BROKEX_CONTRACT_ABI)
-
-            position_data = token_contract.functions.openPosition(pair, proof['proof'], is_long, lev, trade_amount, sl, tp)
-            estimated_gas = position_data.estimate_gas({"from": address})
-
-            max_priority_fee = web3.to_wei(1, "gwei")
-            max_fee = max_priority_fee
-
-            position_tx = position_data.build_transaction({
-                "from": address,
-                "gas": int(estimated_gas * 1.2),
-                "maxFeePerGas": int(max_fee),
-                "maxPriorityFeePerGas": int(max_priority_fee),
-                "nonce": self.used_nonce[address],
-                "chainId": web3.eth.chain_id,
-            })
-
-            tx_hash = await self.send_raw_transaction_with_retries(account, web3, position_tx)
-            receipt = await self.wait_for_receipt_with_retries(web3, tx_hash)
-
-            block_number = receipt.blockNumber
-            self.used_nonce[address] += 1
-
-            return tx_hash, block_number
-        except Exception as e:
-            logger.error(f"Message: {str(e)}")
-            return None, None
-
-    async def perform_deposit_lp(self, account: str, address: str, use_proxy: bool):
-        try:
-            web3 = await self.get_web3_with_check(address, use_proxy)
-
-            asset_address = web3.to_checksum_address(self.USDT_CONTRACT_ADDRESS)
-            asset_contract = web3.eth.contract(address=web3.to_checksum_address(asset_address), abi=self.ERC20_CONTRACT_ABI)
-            decimals = asset_contract.functions.decimals().call()
-
-            deposit_lp_amount = int(self.deposit_lp_amount * (10 ** decimals))
-
-            await self.approving_token(account, address, self.POOL_ROUTER_ADDRESS, asset_address, deposit_lp_amount, use_proxy)
-
-            token_contract = web3.eth.contract(address=web3.to_checksum_address(self.POOL_ROUTER_ADDRESS), abi=self.BROKEX_CONTRACT_ABI)
-
-            lp_data = token_contract.functions.depositLiquidity(deposit_lp_amount)
-            estimated_gas = lp_data.estimate_gas({"from": address})
-
-            max_priority_fee = web3.to_wei(1, "gwei")
-            max_fee = max_priority_fee
-
-            lp_tx = lp_data.build_transaction({
-                "from": address,
-                "gas": int(estimated_gas * 1.2),
-                "maxFeePerGas": int(max_fee),
-                "maxPriorityFeePerGas": int(max_priority_fee),
-                "nonce": self.used_nonce[address],
-                "chainId": web3.eth.chain_id,
-            })
-
-            tx_hash = await self.send_raw_transaction_with_retries(account, web3, lp_tx)
-            receipt = await self.wait_for_receipt_with_retries(web3, tx_hash)
-
-            block_number = receipt.blockNumber
-            self.used_nonce[address] += 1
-
-            return tx_hash, block_number
-        except Exception as e:
-            logger.error(f"Message: {str(e)}")
-            return None, None
-
-    async def perform_withdraw_lp(self, account: str, address: str, use_proxy: bool):
-        try:
-            web3 = await self.get_web3_with_check(address, use_proxy)
-
-            withdraw_lp_amount = int(self.withdraw_lp_amount * (10 ** 18))
-
-            token_contract = web3.eth.contract(address=web3.to_checksum_address(self.POOL_ROUTER_ADDRESS), abi=self.BROKEX_CONTRACT_ABI)
-
-            lp_data = token_contract.functions.withdrawLiquidity(withdraw_lp_amount)
-            estimated_gas = lp_data.estimate_gas({"from": address})
-
-            max_priority_fee = web3.to_wei(1, "gwei")
-            max_fee = max_priority_fee
-
-            lp_tx = lp_data.build_transaction({
-                "from": address,
-                "gas": int(estimated_gas * 1.2),
-                "maxFeePerGas": int(max_fee),
-                "maxPriorityFeePerGas": int(max_priority_fee),
-                "nonce": self.used_nonce[address],
-                "chainId": web3.eth.chain_id,
-            })
-
-            tx_hash = await self.send_raw_transaction_with_retries(account, web3, lp_tx)
-            receipt = await self.wait_for_receipt_with_retries(web3, tx_hash)
-
-            block_number = receipt.blockNumber
-            self.used_nonce[address] += 1
-
-            return tx_hash, block_number
-        except Exception as e:
-            logger.error(f"Message: {str(e)}")
-            return None, None
-
-    async def print_timer(self):
-        for remaining in range(random.randint(self.min_delay, self.max_delay), 0, -1):
-            print(
-                f"{Colors.BRIGHT_BLACK}[ {datetime.now().astimezone(wib).strftime('%H:%M:%S')} ]{Colors.RESET} {Colors.CYAN}[⟳] "
-                f"{Colors.BLUE + Colors.BOLD}Wait For {remaining} Seconds For Next Tx...{Colors.RESET}",
-                end="\r",
-                flush=True
-            )
-            await asyncio.sleep(1)
-
-    def print_trade_question(self):
-        while True:
-            try:
-                trade_count = int(input(f"{Colors.YELLOW + Colors.BOLD}Trade Count For Each Wallet -> {Colors.RESET}").strip())
-                if trade_count > 0:
-                    self.trade_count = trade_count
-                    break
-                else:
-                    print(f"{Colors.RED + Colors.BOLD}Trade Count must be > 0.{Colors.RESET}")
-            except ValueError:
-                print(f"{Colors.RED + Colors.BOLD}Invalid input. Enter a number.{Colors.RESET}")
-
-        while True:
-            try:
-                trade_amount = float(input(f"{Colors.YELLOW + Colors.BOLD}Enter Trade Amount [Min 10] -> {Colors.RESET}").strip())
-                if trade_amount >= 10:
-                    self.trade_amount = trade_amount
-                    break
-                else:
-                    print(f"{Colors.RED + Colors.BOLD}Trade Amount must be >= 10.{Colors.RESET}")
-            except ValueError:
-                print(f"{Colors.RED + Colors.BOLD}Invalid input. Enter a float or decimal number.{Colors.RESET}")
-
-    def print_lp_option_question(self):
-        while True:
-            try:
-                print(f"{Colors.GREEN + Colors.BOLD}Choose LP Option:{Colors.RESET}")
-                print(f"{Colors.WHITE + Colors.BOLD}1. Deposit Liquidity{Colors.RESET}")
-                print(f"{Colors.WHITE + Colors.BOLD}2. Withdraw Liquidity{Colors.RESET}")
-                print(f"{Colors.WHITE + Colors.BOLD}3. Skipped{Colors.RESET}")
-                option = int(input(f"{Colors.BLUE + Colors.BOLD}Choose [1/2/3] -> {Colors.RESET}").strip())
-
-                if option in [1, 2, 3]:
-                    option_type = (
-                        "Deposit Liquidity" if option == 1 else
-                        "Withdraw Liquidity" if option == 2 else
-                        "Skipped"
-                    )
-                    logger.success(f"{option_type} Selected.")
-
-                    if option == 1:
-                        self.print_deposit_lp_question()
-
-                    elif option == 2:
-                        self.print_withdraw_lp_question()
-
-                    self.lp_option = option
-                    break
-                else:
-                    print(f"{Colors.RED + Colors.BOLD}Please enter either 1, 2, or 3.{Colors.RESET}")
-            except ValueError:
-                print(f"{Colors.RED + Colors.BOLD}Invalid input. Enter a number (1, 2, or 3).{Colors.RESET}")
-
-    def print_deposit_lp_question(self):
-        while True:
-            try:
-                deposit_lp_count = int(input(f"{Colors.YELLOW + Colors.BOLD}Deposit Liquidity Count For Each Wallet -> {Colors.RESET}").strip())
-                if deposit_lp_count > 0:
-                    self.deposit_lp_count = deposit_lp_count
-                    break
-                else:
-                    print(f"{Colors.RED + Colors.BOLD}Deposit Liquidity Count must be > 0.{Colors.RESET}")
-            except ValueError:
-                print(f"{Colors.RED + Colors.BOLD}Invalid input. Enter a number.{Colors.RESET}")
-
-        while True:
-            try:
-                deposit_lp_amount = float(input(f"{Colors.YELLOW + Colors.BOLD}Enter Deposit Liquidity Amount -> {Colors.RESET}").strip())
-                if deposit_lp_amount > 0:
-                    self.deposit_lp_amount = deposit_lp_amount
-                    break
-                else:
-                    print(f"{Colors.RED + Colors.BOLD}Deposit Liquidity Amount must be > 0.{Colors.RESET}")
-            except ValueError:
-                print(f"{Colors.RED + Colors.BOLD}Invalid input. Enter a float or decimal number.{Colors.RESET}")
-
-    def print_withdraw_lp_question(self):
-        while True:
-            try:
-                withdraw_lp_count = int(input(f"{Colors.YELLOW + Colors.BOLD}Withdraw Liquidity Count For Each Wallet -> {Colors.RESET}").strip())
-                if withdraw_lp_count > 0:
-                    self.withdraw_lp_count = withdraw_lp_count
-                    break
-                else:
-                    print(f"{Colors.RED + Colors.BOLD}Withdraw Liquidity Count must be > 0.{Colors.RESET}")
-            except ValueError:
-                print(f"{Colors.RED + Colors.BOLD}Invalid input. Enter a number.{Colors.RESET}")
-
-        while True:
-            try:
-                withdraw_lp_amount = float(input(f"{Colors.YELLOW + Colors.BOLD}Enter Withdraw Liquidity Amount -> {Colors.RESET}").strip())
-                if withdraw_lp_amount > 0:
-                    self.withdraw_lp_amount = withdraw_lp_amount
-                    break
-                else:
-                    print(f"{Colors.RED + Colors.BOLD}Withdraw Liquidity Amount must be > 0.{Colors.RESET}")
-            except ValueError:
-                print(f"{Colors.RED + Colors.BOLD}Invalid input. Enter a float or decimal number.{Colors.RESET}")
-
-    def print_delay_question(self):
-        while True:
-            try:
-                min_delay = int(input(f"{Colors.YELLOW + Colors.BOLD}Min Delay For Each Tx -> {Colors.RESET}").strip())
-                if min_delay >= 0:
-                    self.min_delay = min_delay
-                    break
-                else:
-                    print(f"{Colors.RED + Colors.BOLD}Min Delay must be >= 0.{Colors.RESET}")
-            except ValueError:
-                print(f"{Colors.RED + Colors.BOLD}Invalid input. Enter a number.{Colors.RESET}")
-
-        while True:
-            try:
-                max_delay = int(input(f"{Colors.YELLOW + Colors.BOLD}Max Delay For Each Tx -> {Colors.RESET}").strip())
-                if max_delay >= min_delay:
-                    self.max_delay = max_delay
-                    break
-                else:
-                    print(f"{Colors.RED + Colors.BOLD}Max Delay must be >= Min Delay.{Colors.RESET}")
-            except ValueError:
-                print(f"{Colors.RED + Colors.BOLD}Invalid input. Enter a number.{Colors.RESET}")
-
-    def print_question(self):
-        while True:
-            try:
-                print(f"{Colors.GREEN + Colors.BOLD}Select Option:{Colors.RESET}")
-                print(f"{Colors.WHITE + Colors.BOLD}1. Claim Faucet{Colors.RESET}")
-                print(f"{Colors.WHITE + Colors.BOLD}2. Random Trade{Colors.RESET}")
-                print(f"{Colors.WHITE + Colors.BOLD}3. Deposit Liquidity{Colors.RESET}")
-                print(f"{Colors.WHITE + Colors.BOLD}4. Withdraw Liquidity{Colors.RESET}")
-                print(f"{Colors.WHITE + Colors.BOLD}5. Run All Features{Colors.RESET}")
-                option = int(input(f"{Colors.BLUE + Colors.BOLD}Choose [1/2/3/4/5] -> {Colors.RESET}").strip())
-
-                if option in [1, 2, 3, 4, 5]:
-                    option_type = (
-                        "Claim Faucet" if option == 1 else
-                        "Random Trade" if option == 2 else
-                        "Deposit Liquidity" if option == 3 else
-                        "Withdraw Liquidity" if option == 4 else
-                        "Run All Features"
-                    )
-                    logger.success(f"{option_type} Selected.")
-                    break
-                else:
-                    print(f"{Colors.RED + Colors.BOLD}Please enter either 1, 2, 3, 4, or 5.{Colors.RESET}")
-            except ValueError:
-                print(f"{Colors.RED + Colors.BOLD}Invalid input. Enter a number (1, 2, 3, 4, or 5).{Colors.RESET}")
-
-        if option == 2:
-            self.print_trade_question()
-            self.print_delay_question()
-
-        elif option == 3:
-            self.print_deposit_lp_question()
-            self.print_delay_question()
-
-        elif option == 4:
-            self.print_withdraw_lp_question()
-            self.print_delay_question()
-
-        elif option == 5:
-            self.print_trade_question()
-            self.print_lp_option_question()
-            self.print_delay_question()
-
-        while True:
-            try:
-                print(f"{Colors.WHITE + Colors.BOLD}1. Run With Private Proxy{Colors.RESET}")
-                print(f"{Colors.WHITE + Colors.BOLD}2. Run Without Proxy{Colors.RESET}")
-                choose = int(input(f"{Colors.BLUE + Colors.BOLD}Choose [1/2] -> {Colors.RESET}").strip())
-
-                if choose in [1, 2]:
-                    proxy_type = (
-                        "With Private" if choose == 1 else
-                        "Without"
-                    )
-                    logger.success(f"Run {proxy_type} Proxy Selected.")
-                    break
-                else:
-                    print(f"{Colors.RED + Colors.BOLD}Please enter either 1 or 2.{Colors.RESET}")
-            except ValueError:
-                print(f"{Colors.RED + Colors.BOLD}Invalid input. Enter a number (1 or 2).{Colors.RESET}")
-
-        rotate = False
-        if choose == 1: # Only ask for rotation if private proxy is selected
-            while True:
-                rotate = input(f"{Colors.BLUE + Colors.BOLD}Rotate Invalid Proxy? [y/n] -> {Colors.RESET}").strip()
-
-                if rotate in ["y", "n"]:
-                    rotate = rotate == "y"
-                    break
-                else:
-                    print(f"{Colors.RED + Colors.BOLD}Invalid input. Enter 'y' or 'n'.{Colors.RESET}")
-
-        return option, choose, rotate
-
-    async def check_connection(self, proxy_url=None):
-        connector, proxy, proxy_auth = self.build_proxy_config(proxy_url)
-        try:
-            async with ClientSession(connector=connector, timeout=ClientTimeout(total=10)) as session:
-                async with session.get(url="https://api.ipify.org?format=json", proxy=proxy, proxy_auth=proxy_auth) as response:
-                    response.raise_for_status()
-                    return True
-        except (Exception, ClientResponseError) as e:
-            logger.error(f"Status: Connection Not 200 OK - {str(e)}")
-            return None
-
-    async def get_proof(self, address: str, pair: int, use_proxy: bool, retries=5):
-        url = f"{self.BASE_API}/proof?pairs={pair}"
-        for attempt in range(retries):
-            proxy_url = self.get_next_proxy_for_account(address) if use_proxy else None
-            connector, proxy, proxy_auth = self.build_proxy_config(proxy_url)
-            try:
-                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
-                    async with session.get(url=url, headers=self.HEADERS, proxy=proxy, proxy_auth=proxy_auth) as response:
-                        response.raise_for_status()
-                        return await response.json()
-            except (Exception, ClientResponseError) as e:
-                if attempt < retries:
-                    await asyncio.sleep(5)
-                    continue
-                return None
-
-    async def process_check_connection(self, address: int, use_proxy: bool, rotate_proxy: bool):
-        while True:
-            proxy = self.get_next_proxy_for_account(address) if use_proxy else None
-            logger.info(f"Proxy: {proxy}")
-
-            is_valid = await self.check_connection(proxy)
-            if not is_valid:
-                if rotate_proxy:
-                    proxy = self.rotate_proxy_for_account(address)
-                    continue
-
-                return False
-
-            return True
-
-    async def process_perform_claim_faucet(self, account: str, address: str, use_proxy: bool):
-        has_claimed = await self.check_faucet_status(address, use_proxy)
-        if not has_claimed:
-            tx_hash, block_number = await self.perform_claim_faucet(account, address, use_proxy)
-            if tx_hash and block_number:
-                explorer = f"https://testnet.pharosscan.xyz/tx/{tx_hash}"
-
-                logger.actionSuccess(f"USDT Faucet Claimed Successfully")
-                logger.info(f"Block: {block_number}")
-                logger.action(f"Tx Hash: {tx_hash}")
-                logger.actionSuccess(f"Explorer: {explorer}")
-            else:
-                logger.error(f"Perform On-Chain Failed")
-        else:
-            logger.warn(f"Already Claimed")
-
-    async def process_perform_trade(self, account: str, address: str, pair: int, is_long: bool, use_proxy: bool):
-        tx_hash, block_number = await self.perform_trade(account, address, pair, is_long, use_proxy)
-        if tx_hash and block_number:
-            explorer = f"https://testnet.pharosscan.xyz/tx/{tx_hash}"
-
-            logger.actionSuccess(f"Trade Success")
-            logger.info(f"Block: {block_number}")
-            logger.action(f"Tx Hash: {tx_hash}")
-            logger.actionSuccess(f"Explorer: {explorer}")
-        else:
-            logger.error(f"Perform On-Chain Failed")
-
-    async def process_perform_deposit_lp(self, account: str, address: str, use_proxy: bool):
-        tx_hash, block_number = await self.perform_deposit_lp(account, address, use_proxy)
-        if tx_hash and block_number:
-            explorer = f"https://testnet.pharosscan.xyz/tx/{tx_hash}"
-
-            logger.actionSuccess(f"Deposit Liquidity Success")
-            logger.info(f"Block: {block_number}")
-            logger.action(f"Tx Hash: {tx_hash}")
-            logger.actionSuccess(f"Explorer: {explorer}")
-        else:
-            logger.error(f"Perform On-Chain Failed")
-
-    async def process_perform_withdraw_lp(self, account: str, address: str, use_proxy: bool):
-        tx_hash, block_number = await self.perform_withdraw_lp(account, address, use_proxy)
-        if tx_hash and block_number:
-            explorer = f"https://testnet.pharosscan.xyz/tx/{tx_hash}"
-
-            logger.actionSuccess(f"Withdraw Liquidity Success")
-            logger.info(f"Block: {block_number}")
-            logger.action(f"Tx Hash: {tx_hash}")
-            logger.actionSuccess(f"Explorer: {explorer}")
-        else:
-            logger.error(f"Perform On-Chain Failed")
-
-    async def process_option_1(self, account: str, address: str, use_proxy):
-        logger.step(f"Faucet")
-
-        await self.process_perform_claim_faucet(account, address, use_proxy)
-
-    async def process_option_2(self, account: str, address: str, use_proxy: bool):
-        for i in range(self.trade_count):
-            logger.step(f"Trade {i+1} Of {self.trade_count}")
-
-            pairs = random.choice(self.pairs)
-            is_long = random.choice([True, False])
-            name = pairs["name"]
-            pair = pairs["desimal"]
-            action = "Long" if is_long == True else "Short"
-
-            balance = await self.get_token_balance(address, self.USDT_CONTRACT_ADDRESS, use_proxy)
-
-            logger.info(f"Balance: {balance} USDT")
-            logger.info(f"Amount: {self.trade_amount} USDT")
-            logger.info(f"Pair: {action} - {name}")
-
-            if not balance or balance <= self.trade_amount:
-                logger.warn(f"Insufficient USDT Token Balance")
-                return
-
-            await self.process_perform_trade(account, address, pair, is_long, use_proxy)
-            await self.print_timer()
-
-    async def process_option_3(self, account: str, address: str, use_proxy: bool):
-        for i in range(self.deposit_lp_count):
-            logger.step(f"Deposit LP {i+1} Of {self.deposit_lp_count}")
-
-            balance = await self.get_token_balance(address, self.USDT_CONTRACT_ADDRESS, use_proxy)
-
-            logger.info(f"Balance: {balance} USDT")
-            logger.info(f"Amount: {self.deposit_lp_amount} USDT")
-
-            if not balance or balance <= self.deposit_lp_amount:
-                logger.warn(f"Insufficient USDT Token Balance")
-                return
-
-            await self.process_perform_deposit_lp(account, address, use_proxy)
-            await self.print_timer()
-
-    async def process_option_4(self, account: str, address: str, use_proxy: bool):
-        for i in range(self.withdraw_lp_count):
-            logger.step(f"Withdraw LP {i+1} Of {self.withdraw_lp_count}")
-
-            balance = await self.get_lp_balance(address, use_proxy)
-
-            logger.info(f"LP Held: {balance}")
-            logger.info(f"Amount: {self.withdraw_lp_amount}")
-
-            if not balance or balance <= self.withdraw_lp_amount:
-                logger.warn(f"Insufficient LP Tokens Held")
-                return
-
-            await self.process_perform_withdraw_lp(account, address, use_proxy)
-            await self.print_timer()
-
-    async def process_accounts(self, account: str, address: str, option: int, use_proxy: bool, rotate_proxy: bool):
-        is_valid = await self.process_check_connection(address, use_proxy, rotate_proxy)
-        if is_valid:
-            web3 = await self.get_web3_with_check(address, use_proxy)
-            if not web3:
-                logger.error(f"Status: Web3 Not Connected")
-                return
-
-            self.used_nonce[address] = web3.eth.get_transaction_count(address, "pending")
-
-        if option == 1:
-            logger.step(f"Option: Claim Faucet")
-
-            await self.process_option_1(account, address, use_proxy)
-
-        elif option == 2:
-            logger.step(f"Option: Random Trade")
-
-            await self.process_option_2(account, address, use_proxy)
-
-        elif option == 3:
-            logger.step(f"Option: Deposit Liquidity")
-
-            await self.process_option_3(account, address, use_proxy)
-
-        elif option == 4:
-            logger.step(f"Option: Withdraw Liquidity")
-
-            await self.process_option_4(account, address, use_proxy)
-
-        else:
-            logger.step(f"Option: Run All Features")
-
-            await self.process_option_1(account, address, use_proxy)
-            await asyncio.sleep(5)
-
-            await self.process_option_2(account, address, use_proxy)
-            await asyncio.sleep(5)
-
-            if self.lp_option == 1:
-                await self.process_option_3(account, address, use_proxy)
-
-            elif self.lp_option == 2:
-                await self.process_option_4(account, address, use_proxy)
-
-    async def main(self):
-        try:
-            with open('accounts.txt', 'r') as file:
-                accounts = [line.strip() for line in file if line.strip()]
-
-            option, use_proxy_choice, rotate_proxy = self.print_question()
-
-            while True:
-                use_proxy = False
-                if use_proxy_choice == 1: # Now corresponds to private proxy
-                    use_proxy = True
-
-                await display_welcome_screen() # Call the new welcome screen
-                logger.info(f"Account's Total: {len(accounts)}")
-
-                if use_proxy:
-                    await self.load_proxies(use_proxy_choice)
-
-                for account in accounts:
-                    if account:
-                        address = self.generate_address(account)
-
-                        print(f"{Colors.CYAN + Colors.BOLD}[ {Colors.WHITE + Colors.BOLD}{self.mask_account(address)} {Colors.CYAN + Colors.BOLD}]{Colors.RESET}")
-
-
-                        if not address:
-                            logger.error(f"Status: Invalid Private Key or Library Version Not Supported")
-                            continue
-
-                        await self.process_accounts(account, address, option, use_proxy, rotate_proxy)
-                        await asyncio.sleep(3)
-                
-                # Modified countdown logic
-                seconds = 24 * 60 * 60 # Start with 24 hours
-                start_time_str = datetime.now(wib).strftime('%H:%M:%S')
-
-                print(f"{Colors.BRIGHT_BLACK}[{start_time_str}]{Colors.RESET} {Colors.GREEN}[✓] 23:59:59 All Task Completeed 🗿", end="\r", flush=True)
-                await asyncio.sleep(1) # Initial display for one second
-
-                seconds -= 1 # Decrement for the actual countdown
-
-                while seconds >= 0:
-                    formatted_time = self.format_seconds(seconds)
-                    print(
-                        f"{Colors.BRIGHT_BLACK}[ {datetime.now().astimezone(wib).strftime('%H:%M:%S')} ]{Colors.RESET} "
-                        f"{Colors.CYAN}[⟳] Task Completeed Next cycle in: {formatted_time}",
-                        end="\r",
-                        flush=True
-                    )
-                    await asyncio.sleep(1)
-                    seconds -= 1
-
-        except FileNotFoundError:
-            logger.error(f"File 'accounts.txt' Not Found.")
-            return
-        except Exception as e:
-            logger.error(f"Error: {e}")
+            logger.error(f"Failed to retrieve data from WebSocket: {e}")
             raise e
 
+    @with_retry(max_retries=5, base_delay=2)
+    def get_usdt_balance(self, web3):
+        usdt_contract = web3.eth.contract(address=self.USDT_ADDRESS, abi=self.USDT_ABI)
+        balance = usdt_contract.functions.balanceOf(self.wallet_address).call()
+        return balance / 10**self.USDT_DECIMALS
+
+    @with_retry(max_retries=5, base_delay=2)
+    def approve_usdt(self, web3, spender_address):
+        usdt_contract = web3.eth.contract(address=self.USDT_ADDRESS, abi=self.USDT_ABI)
+        logger.step(f"Approving maximum USDT for spender {spender_address}...")
+        nonce = self.get_nonce(web3, self.wallet_address)
+        tx = usdt_contract.functions.approve(spender_address, self.MAX_UINT256).build_transaction({
+            "chainId": self.CHAIN_ID, "gas": 300000, "gasPrice": self.GAS_PRICE, "nonce": nonce,
+        })
+        signed_tx = web3.eth.account.sign_transaction(tx, self.private_key)
+        tx_hash = self.send_raw_tx(web3, signed_tx)
+        return self.wait_tx_receipt_and_status(web3, tx_hash)
+
+    @with_retry(max_retries=5, base_delay=2)
+    def claim_usdt(self, web3):
+        logger.step("Attempting to claim USDT...")
+        router_contract = web3.eth.contract(address=self.ROUTER_CONTRACT, abi=self.CLAIM_ABI)
+        balance = self.get_usdt_balance(web3)
+        if balance >= 1000:
+            logger.success(f"Skip claim - USDT balance is sufficient ({balance:.2f}).")
+            return True
+        nonce = self.get_nonce(web3, self.wallet_address)
+        tx = router_contract.functions.claim().build_transaction({
+            'from': self.wallet_address, 'nonce': nonce, 'chainId': self.CHAIN_ID, 'gas': self.GAS_LIMIT, 'gasPrice': self.GAS_PRICE,
+        })
+        signed_tx = web3.eth.account.sign_transaction(tx, self.private_key)
+        tx_hash = self.send_raw_tx(web3, signed_tx)
+        return self.wait_tx_receipt_and_status(web3, tx_hash)
+
+    @with_retry(max_retries=5, base_delay=2)
+    def add_liquidity(self, web3):
+        usdt_amount_to_add = round(random.uniform(10.1, 15.5), 2)
+        logger.step(f"Attempting to add liquidity of {usdt_amount_to_add:.2f} USDT...")
+        balance = self.get_usdt_balance(web3)
+        if balance < usdt_amount_to_add:
+            logger.warn(f"USDT balance ({balance:.2f}) is insufficient. Attempting to claim...")
+            if not self.claim_usdt(web3):
+                logger.error("Failed to claim USDT. Skipping add liquidity action.")
+                return False
+            balance = self.get_usdt_balance(web3)
+            if balance < usdt_amount_to_add:
+                logger.error(f"USDT balance ({balance:.2f}) is still insufficient after claim.")
+                return False
+        usdt_contract = web3.eth.contract(address=self.USDT_ADDRESS, abi=self.USDT_ABI)
+        allowance = usdt_contract.functions.allowance(self.wallet_address, self.LIQUIDITY_CONTRACT_ADDRESS).call()
+        if allowance < usdt_amount_to_add * 10**self.USDT_DECIMALS:
+            if not self.approve_usdt(web3, self.LIQUIDITY_CONTRACT_ADDRESS):
+                return False
+            time.sleep(10)
+        nonce = self.get_nonce(web3, self.wallet_address)
+        tx = web3.eth.contract(address=self.LIQUIDITY_CONTRACT_ADDRESS, abi=self.LIQUIDITY_ABI).functions.depositLiquidity(int(usdt_amount_to_add * 10**self.USDT_DECIMALS)).build_transaction({
+            "chainId": self.CHAIN_ID, "gas": 500000, "gasPrice": self.GAS_PRICE, "nonce": nonce,
+        })
+        signed_tx = web3.eth.account.sign_transaction(tx, self.private_key)
+        tx_hash = self.send_raw_tx(web3, signed_tx)
+        return self.wait_tx_receipt_and_status(web3, tx_hash)
+
+    @with_retry(max_retries=5, base_delay=2)
+    def withdraw_liquidity(self, web3):
+        liquidity_contract = web3.eth.contract(address=self.LIQUIDITY_CONTRACT_ADDRESS, abi=self.LIQUIDITY_ABI)
+        logger.step("Attempting to withdraw some liquidity...")
+        lp_balance_wei = liquidity_contract.functions.balanceOf(self.wallet_address).call()
+        if lp_balance_wei == 0:
+            logger.info("No LP tokens to withdraw.")
+            return True
+        withdraw_percentage = random.randint(10, 50)
+        lp_to_withdraw_wei = (lp_balance_wei * withdraw_percentage) // 100
+        logger.info(f"LP Balance: {lp_balance_wei/10**18:.4f}. Will withdraw: {lp_to_withdraw_wei/10**18:.4f} LP ({withdraw_percentage}%)")
+        nonce = self.get_nonce(web3, self.wallet_address)
+        tx = liquidity_contract.functions.withdrawLiquidity(lp_to_withdraw_wei).build_transaction({
+            "chainId": self.CHAIN_ID, "gas": 500000, "gasPrice": self.GAS_PRICE, "nonce": nonce,
+        })
+        signed_tx = web3.eth.account.sign_transaction(tx, self.private_key)
+        tx_hash = self.send_raw_tx(web3, signed_tx)
+        return self.wait_tx_receipt_and_status(web3, tx_hash)
+
+    @with_retry(max_retries=5, base_delay=2)
+    def place_limit_order(self, web3):
+        if not self.asset_data:
+            logger.error("Asset data not available for limit order.")
+            return False
+        asset_index_str = random.choice(list(self.asset_data.keys()))
+        asset_info = self.asset_data[asset_index_str]
+        asset_name, current_price = asset_info["name"], asset_info["price"]
+        usd_size_float = round(random.uniform(10.1, 20.5), 2)
+        if self.get_usdt_balance(web3) < usd_size_float:
+            logger.warn("Insufficient USDT balance for limit order.")
+            return False
+        is_long = random.choice([True, False])
+        leverage = random.randint(2, 10)
+        target_price_float = current_price * random.uniform(0.995, 1.005)
+        target_price = int(target_price_float * 10**18)
+        sl_price = int(target_price * (0.95 if is_long else 1.05))
+        tp_price = int(target_price * (1.05 if is_long else 0.95))
+        logger.step(f"Placing Limit Order: {asset_name.upper()} | {'LONG' if is_long else 'SHORT'}, Size={usd_size_float:.2f} USDT, Lev={leverage}x, Target=${target_price_float:.4f}")
+        if self.get_usdt_balance(web3) < usd_size_float:
+             logger.warn("Insufficient USDT balance for limit order.")
+             return False
+        usdt_contract = web3.eth.contract(address=self.USDT_ADDRESS, abi=self.USDT_ABI)
+        allowance = usdt_contract.functions.allowance(self.wallet_address, self.BROKEX_ADDRESS).call()
+        if allowance < usd_size_float * 10**self.USDT_DECIMALS:
+            if not self.approve_usdt(web3, self.BROKEX_ADDRESS):
+                return False
+            time.sleep(10)
+        nonce = self.get_nonce(web3, self.wallet_address)
+        tx = web3.eth.contract(address=self.BROKEX_ADDRESS, abi=self.BROKEX_ABI).functions.placeOrder(
+            int(asset_index_str), is_long, leverage, target_price, int(usd_size_float * 10**self.USDT_DECIMALS), sl_price, tp_price
+        ).build_transaction({
+            "chainId": self.CHAIN_ID, "gas": 1500000, "gasPrice": self.GAS_PRICE, "nonce": nonce,
+        })
+        signed_tx = web3.eth.account.sign_transaction(tx, self.private_key)
+        tx_hash = self.send_raw_tx(web3, signed_tx)
+        if self.wait_tx_receipt_and_status(web3, tx_hash):
+            logger.success(f"Limit Order {asset_name.upper()} successful! Tx: 0x{tx_hash.hex()}")
+            return True
+        else:
+            logger.error(f"Limit Order {asset_name.upper()} failed. Tx: 0x{tx_hash.hex()}")
+            return False
+
+    @with_retry(max_retries=5, base_delay=2)
+    def open_market_position(self, web3):
+        if not self.asset_data:
+            logger.error("Asset data not available for market order.")
+            return False
+        asset_index_str = random.choice(list(self.asset_data.keys()))
+        asset_info = self.asset_data[asset_index_str]
+        asset_name, current_price = asset_info["name"], asset_info["price"]
+        usd_size_float = round(random.uniform(10.1, 20.5), 2)
+        if self.get_usdt_balance(web3) < usd_size_float:
+            logger.warn("Insufficient USDT balance for market order.")
+            return False
+        is_long = random.choice([True, False])
+        leverage = random.randint(2, 10)
+        sl_price = int(current_price * (0.95 if is_long else 1.05) * 10**18)
+        tp_price = int(current_price * (1.05 if is_long else 0.95) * 10**18)
+        logger.step(f"Opening Market Position: {asset_name.upper()} | {'LONG' if is_long else 'SHORT'}, Size={usd_size_float:.2f} USDT, Lev={leverage}x")
+        logger.loading("Oracle: Getting proof...")
+        proof_response = requests.get(self.ORACLE_PROOF_URL.format(asset_index_str), timeout=10)
+        if proof_response.status_code != 200:
+            logger.error(f"Oracle: Failed to get proof, status {proof_response.status_code}")
+            return False
+        proof = proof_response.json().get('proof')
+        if not proof:
+            logger.error("Oracle: Proof not found in response.")
+            return False
+        logger.success("Oracle: Proof successfully obtained.")
+        usdt_contract = web3.eth.contract(address=self.USDT_ADDRESS, abi=self.USDT_ABI)
+        allowance = usdt_contract.functions.allowance(self.wallet_address, self.BROKEX_ADDRESS).call()
+        if allowance < usd_size_float * 10**self.USDT_DECIMALS:
+            if not self.approve_usdt(web3, self.BROKEX_ADDRESS):
+                return False
+            time.sleep(10)
+        nonce = self.get_nonce(web3, self.wallet_address)
+        tx = web3.eth.contract(address=self.BROKEX_ADDRESS, abi=self.BROKEX_ABI).functions.openPosition(
+            int(asset_index_str), bytes.fromhex(proof[2:]), is_long, leverage, int(usd_size_float * 10**self.USDT_DECIMALS), sl_price, tp_price
+        ).build_transaction({
+            "chainId": self.CHAIN_ID, "gas": 2000000, "gasPrice": self.GAS_PRICE, "nonce": nonce
+        })
+        signed_tx = web3.eth.account.sign_transaction(tx, self.private_key)
+        tx_hash = self.send_raw_tx(web3, signed_tx)
+        if self.wait_tx_receipt_and_status(web3, tx_hash):
+            logger.success(f"Market Position {asset_name.upper()} opened successfully! Tx: 0x{tx_hash.hex()}")
+            return True
+        else:
+            logger.error(f"Market Position {asset_name.upper()} failed. Tx: 0x{tx_hash.hex()}")
+            return False
+
+    @with_retry(max_retries=3, base_delay=5)
+    def close_position(self, web3, position_id, asset_index):
+        logger.step(f"Attempting to close position ID: {position_id}...")
+        logger.loading("Oracle: Getting proof to close...")
+        proof_response = requests.get(self.ORACLE_PROOF_URL.format(asset_index), timeout=10)
+        if proof_response.status_code != 200:
+            logger.error(f"Oracle: Failed to get proof, status {proof_response.status_code}")
+            return False
+        proof = proof_response.json().get('proof')
+        if not proof:
+            logger.error("Oracle: Proof not found in response.")
+            return False
+        logger.success("Oracle: Proof successfully obtained.")
+        nonce = self.get_nonce(web3, self.wallet_address)
+        tx = web3.eth.contract(address=self.BROKEX_ADDRESS, abi=self.BROKEX_ABI).functions.closePosition(
+            position_id, bytes.fromhex(proof[2:])
+        ).build_transaction({
+            "chainId": self.CHAIN_ID, "gas": 2000000, "gasPrice": self.GAS_PRICE, "nonce": nonce
+        })
+        signed_tx = web3.eth.account.sign_transaction(tx, self.private_key)
+        tx_hash = self.send_raw_tx(web3, signed_tx)
+        if self.wait_tx_receipt_and_status(web3, tx_hash):
+            logger.success(f"Position ID {position_id} closed successfully! Tx: 0x{tx_hash.hex()}")
+            return True
+        else:
+            logger.error(f"Failed to close position ID {position_id}. Tx: 0x{tx_hash.hex()}")
+            return False
+
+    @with_retry(max_retries=5, base_delay=2)
+    def check_and_manage_open_positions(self, web3):
+        logger.step("Checking PnL of open positions...")
+        brokex_contract = web3.eth.contract(address=self.BROKEX_ADDRESS, abi=self.BROKEX_ABI)
+        try:
+            open_ids = brokex_contract.functions.getUserOpenIds(self.wallet_address).call()
+            if not open_ids:
+                logger.info("No open positions to check.")
+                return
+            for pos_id in open_ids:
+                pos = brokex_contract.functions.getOpenById(pos_id).call()
+                asset_index, is_long, leverage, open_price_wei, size_usd_wei = pos[2], pos[3], pos[4], pos[5], pos[6]
+                asset_str_index = str(asset_index)
+                if asset_str_index not in self.asset_data:
+                    logger.warn(f"No price data found for asset ID {asset_index}, skipping position.")
+                    continue
+                asset_name = self.asset_data[asset_str_index].get("name", f"Unknown (ID: {asset_index})")
+                current_price = self.asset_data[asset_str_index].get("price")
+                open_price = open_price_wei / 10**18
+                size_usd = size_usd_wei / 10**self.USDT_DECIMALS
+                if current_price == 0 or open_price == 0:
+                    logger.warn(f"Invalid price data for asset {asset_name}, skipping position.")
+                    continue
+                pnl_usd = (current_price / open_price - 1) * size_usd if is_long else (open_price / current_price - 1) * size_usd
+                margin = size_usd / leverage
+                pnl_percentage = (pnl_usd / margin) * 100 if margin > 0 else 0
+                pnl_color = Colors.GREEN if pnl_percentage >= 0 else Colors.RED
+                logger.info(f"  - Position {pos_id} [{asset_name}]: Current PnL: {pnl_color}{pnl_percentage:.2f}%{Colors.RESET}")
+                if pnl_percentage >= 100:
+                    logger.success(f"TAKE PROFIT: PnL for position {pos_id} reached {pnl_percentage:.2f}%! Closing position...")
+                    self.close_position(web3, pos_id, asset_index)
+                    logger.warn("Pausing for 15 seconds after closing position...")
+                    time.sleep(15)
+                elif pnl_percentage <= -50:
+                    logger.error(f"STOP LOSS: PnL for position {pos_id} reached {pnl_percentage:.2f}%! Closing position...")
+                    self.close_position(web3, pos_id, asset_index)
+                    logger.warn("Pausing for 15 seconds after closing position...")
+                    time.sleep(15)
+        except Exception as e:
+            logger.error(f"Error while checking PnL: {e}")
+
+    @with_retry(max_retries=5, base_delay=2)
+    def cancel_limit_order(self, web3, order_id):
+        logger.step(f"Attempting to cancel limit order ID: {order_id}...")
+        brokex_contract = web3.eth.contract(address=self.BROKEX_ADDRESS, abi=self.BROKEX_ABI)
+        nonce = self.get_nonce(web3, self.wallet_address)
+        tx = brokex_contract.functions.cancelOrder(order_id).build_transaction({
+            "chainId": self.CHAIN_ID, "gas": 500000, "gasPrice": self.GAS_PRICE, "nonce": nonce
+        })
+        signed_tx = web3.eth.account.sign_transaction(tx, self.private_key)
+        tx_hash = self.send_raw_tx(web3, signed_tx)
+        if self.wait_tx_receipt_and_status(web3, tx_hash):
+            logger.success(f"Order ID {order_id} successfully cancelled! Tx: 0x{tx_hash.hex()}")
+            return True
+        else:
+            logger.error(f"Failed to cancel order ID {order_id}. Tx: 0x{tx_hash.hex()}")
+            return False
+
+    @with_retry(max_retries=5, base_delay=2)
+    def check_and_cancel_stale_orders(self, web3):
+        logger.step("Checking for pending limit orders...")
+        brokex_contract = web3.eth.contract(address=self.BROKEX_ADDRESS, abi=self.BROKEX_ABI)
+        try:
+            order_ids = brokex_contract.functions.getUserOrderIds(self.wallet_address).call()
+            if not order_ids:
+                logger.info("No pending limit orders.")
+                return
+            for order_id in order_ids:
+                order = brokex_contract.functions.getOrderById(order_id).call()
+                asset_index, target_price_wei = order[2], order[5]
+                asset_str_index = str(asset_index)
+                if asset_str_index not in self.asset_data:
+                    logger.warn(f"No price data found for asset ID {asset_index} for order {order_id}, skipping.")
+                    continue
+                current_price = self.asset_data[asset_str_index].get("price")
+                target_price = target_price_wei / 10**18
+                if current_price == 0 or target_price == 0:
+                    continue
+                deviation_pct = (abs(current_price - target_price) / target_price) * 100
+                logger.info(f"  - Order {order_id}: Current price deviation is {deviation_pct:.2f}% from target.")
+                if deviation_pct > self.STALE_ORDER_DEVIATION_PCT:
+                    logger.warn(f"   - Deviation {deviation_pct:.2f}% exceeds threshold ({self.STALE_ORDER_DEVIATION_PCT}%). Cancelling order...")
+                    self.cancel_limit_order(web3, order_id)
+                    logger.warn("Pausing for 15 seconds after cancelling order...")
+                    time.sleep(15)
+        except Exception as e:
+            logger.error(f"Error while checking limit orders: {e}")
+
+    @with_retry(max_retries=5, base_delay=2)
+    def check_my_liquidity(self, web3):
+        liquidity_contract = web3.eth.contract(address=self.LIQUIDITY_CONTRACT_ADDRESS, abi=self.LIQUIDITY_ABI)
+        lp_balance_wei = liquidity_contract.functions.balanceOf(self.wallet_address).call()
+        if lp_balance_wei > 0:
+            lp_price_wei = liquidity_contract.functions.getLpPrice().call()
+            total_value_usdt = (lp_balance_wei / 10**18) * (lp_price_wei / 10**6)
+            logger.info(f"Liquidity Balance: {lp_balance_wei/10**18:.4f} LP (~${total_value_usdt:.2f} USDT)")
+        return lp_balance_wei
+
+    @with_retry(max_retries=5, base_delay=2)
+    def check_and_join_competition(self, web3):
+        response = self.supabase.table('traders').select('address').eq('address', self.wallet_address.lower()).execute()
+        if response.data:
+            logger.info("Competition Status: Already joined.")
+            return True
+        logger.step("Competition Status: Not joined. Attempting to join...")
+        response = self.supabase.table('traders').insert({'address': self.wallet_address.lower(), 'pnl': 0}).execute()
+        if (hasattr(response, 'data') and response.data and response.data[0]['address'] == self.wallet_address.lower()) or (hasattr(response, 'error') and response.error is None):
+            logger.success("Successfully joined the competition!")
+            return True
+        else:
+            error_message = response.error.message if hasattr(response, 'error') and response.error else "Unknown error"
+            logger.error(f"Failed to join competition: {error_message}")
+            return False
+
+    @with_retry(max_retries=3, base_delay=2)
+    def check_competition_rank(self):
+        logger.step("Checking competition rank and points...")
+        try:
+            response = self.supabase.table('traders').select('address, pnl').order('pnl', desc=True).execute()
+            if not response.data:
+                logger.info("Competition leaderboard is empty.")
+                return
+            leaderboard = response.data
+            my_rank = -1
+            my_pnl = 0
+            for i, trader in enumerate(leaderboard):
+                if trader['address'].lower() == self.wallet_address.lower():
+                    my_rank = i + 1
+                    my_pnl = trader['pnl']
+                    break
+            if my_rank != -1:
+                logger.success(f"Your Rank: #{my_rank} | Points (PnL): {my_pnl:.4f}")
+            else:
+                logger.info("You are not yet on the competition leaderboard.")
+        except Exception as e:
+            logger.error(f"Error while checking competition rank: {e}")
+
+    def read_private_keys(self, file_path="accounts.txt"):
+        try:
+            with open(file_path, 'r') as f:
+                keys = [line.strip() for line in f if line.strip()]
+                if not keys:
+                    logger.error(f"File '{file_path}' is empty or does not contain valid keys.")
+                    return []
+                logger.success(f"Found {len(keys)} private keys in '{file_path}'.")
+                return keys
+        except FileNotFoundError:
+            logger.error(f"Error: File '{file_path}' not found. Please create the file and populate it with your private keys.")
+            return []
+
+    def get_address_from_pk(self, private_key):
+        account = Account.from_key(private_key)
+        return account.address
+
+    def run(self):
+        asyncio.run(display_welcome_screen()) # Display the new welcome screen
+        while True:
+            self.clear_terminal()
+            # self.display_banner() # Banner display is removed
+
+            w3 = None
+            for attempt in range(1, self.MAX_RETRIES + 1):
+                try:
+                    w3 = self.connect_web3()
+                    logger.success(f"Connected to chain ID: {self.CHAIN_ID}")
+                    break
+                except Exception as e:
+                    logger.error(f"Failed to connect to RPC on attempt {attempt}/{self.MAX_RETRIES}: {e}")
+                    if attempt < self.MAX_RETRIES:
+                        delay = self.RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                        logger.warn(f"Retrying in {delay} seconds...")
+                        time.sleep(delay)
+                    else:
+                        logger.error("Max retries reached. Aborting run.")
+                        return
+
+            private_keys = self.read_private_keys()
+            if not private_keys:
+                logger.warn("Program will stop because no private keys were found to process.")
+                break
+
+            for index, pk in enumerate(private_keys):
+                logger.step("=")
+                logger.step(f"Starting process for Account {index + 1}/{len(private_keys)}")
+                logger.step("=")
+
+                try:
+                    self.wallet_address = self.get_address_from_pk(pk)
+                    self.private_key = pk
+                    self.account = Account.from_key(pk)
+                    logger.info(f"Processing Wallet: {self.wallet_address}")
+
+                    if not self.update_asset_data_from_websocket():
+                        logger.error("Failed to retrieve asset data. Skipping Brokex Ecosystem.")
+                        continue
+
+                    if self.check_and_join_competition(w3):
+                        self.check_competition_rank()
+
+                    balance = self.get_usdt_balance(w3)
+                    logger.info(f"USDT Balance: {balance:.4f}")
+
+                    if balance < self.MIN_USDT_BALANCE:
+                        logger.warn(f"USDT balance ({balance:.2f}) is insufficient. Attempting to claim...")
+                        if not self.claim_usdt(w3):
+                            logger.error("Failed to claim USDT. Skipping Brokex Ecosystem.")
+                            continue
+                        balance = self.get_usdt_balance(w3)
+                        logger.info(f"USDT Balance after claim: {balance:.4f}")
+                        if balance < self.MIN_USDT_BALANCE:
+                            logger.error("Balance still insufficient after claim. Skipping Brokex Ecosystem.")
+                            continue
+
+                    logger.step("Initiating initial checks...")
+                    self.check_and_manage_open_positions(w3)
+                    time.sleep(5)
+                    self.check_and_cancel_stale_orders(w3)
+                    time.sleep(5)
+                    self.check_my_liquidity(w3)
+
+                    logger.step("Starting main action sequence...")
+                    core_actions = [
+                        ("Open Market Position", self.open_market_position),
+                        ("Place Limit Order", self.place_limit_order),
+                        ("Open Market Position", self.open_market_position),
+                        ("Place Limit Order", self.place_limit_order),
+                        ("Open Market Position", self.open_market_position),
+                        ("Place Limit Order", self.place_limit_order),
+                        ("Open Market Position", self.open_market_position),
+                        ("Place Limit Order", self.place_limit_order),
+                        ("Open Market Position", self.open_market_position),
+                        ("Place Limit Order", self.place_limit_order),
+                        ("Add Liquidity", self.add_liquidity)
+                    ]
+                    random.shuffle(core_actions)
+                    actions = core_actions + [("Withdraw Liquidity", self.withdraw_liquidity)]
+
+                    for i, (name, func) in enumerate(actions, 1):
+                        logger.action(f"--- Action {i}/{len(actions)}: {name} ---")
+                        if func.__name__ == 'withdraw_liquidity':
+                            if self.check_my_liquidity(w3) == 0:
+                                logger.info("No liquidity to withdraw, skipping action.")
+                                continue
+                        try:
+                            if not func(w3):
+                                logger.warn(f"Action '{name}' was not successful, proceeding to next action.")
+                        except Exception as e:
+                            logger.error(f"Error during action {name}: {e}")
+                        if i < len(actions):
+                            delay = random.randint(15, 25)
+                            logger.warn(f"Pausing for {delay} seconds...")
+                            time.sleep(delay)
+
+                    logger.success("Successfully processed Brokex Ecosystem for this wallet.\n")
+
+                except Exception as e:
+                    logger.error(f"A fatal error occurred for Account {index + 1}: {e}")
+                    logger.warn("Proceeding to the next account...")
+
+                if index < len(private_keys) - 1:
+                    inter_account_delay = random.randint(30, 60)
+                    logger.step(f"--- Pausing for {inter_account_delay} seconds before switching to next account ---")
+                    time.sleep(inter_account_delay)
+
+            w3 = None # Reset w3 connection for the next loop to ensure fresh connection
+            
+            logger.step("=")
+            logger.success("All accounts have been processed.")
+            logger.info("Will sleep for 24 hours before restarting...")
+            logger.step("=")
+            time.sleep(24 * 60 * 60)
+
 if __name__ == "__main__":
-    try:
-        bot = Brokex()
-        asyncio.run(bot.main())
-    except KeyboardInterrupt:
-        logger.error("[ EXIT ] Brokex Protocol - BOT")
+    bot = BrokexBot()
+    bot.run()
+    
