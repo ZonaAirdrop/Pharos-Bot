@@ -53,17 +53,108 @@ class PharosTestnet:
             }
         ]
         self.SWAP_CONTRACT_ABI = [
+            [
+    {
+        "inputs": [
             {
-                "inputs": [
-                    { "internalType": "uint256", "name": "collectionAndSelfcalls", "type": "uint256" },
-                    { "internalType": "bytes[]", "name": "data", "type": "bytes[]" }
-                ],
-                "name": "multicall",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function",
+                "internalType": "address",
+                "name": "_factoryV2",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "factoryV3",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "_positionManager",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "_WETH9",
+                "type": "address"
             }
-        ]
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "inputs": [],
+        "name": "WETH9",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "tokenIn",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "tokenOut",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "fee",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "recipient",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "deadline",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amountIn",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amountOutMinimum",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint160",
+                        "name": "sqrtPriceLimitX96",
+                        "type": "uint160"
+                    }
+                ],
+                "internalType": "struct ISwapRouter.ExactInputSingleParams",
+                "name": "params",
+                "type": "tuple"
+            }
+        ],
+        "name": "exactInputSingle",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "amountOut",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "payable",
+        "type": "function"
+    }
+]
         self.ADD_LP_CONTRACT_ABI = [
             {
                 "inputs": [
