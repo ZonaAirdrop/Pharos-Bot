@@ -21,6 +21,7 @@ class Colors:
     CYAN = Fore.CYAN
     MAGENTA = Fore.MAGENTA
     WHITE = Fore.WHITE
+    BLUE = Fore.BLUE  # Ditambahkan
     BRIGHT_GREEN = Fore.LIGHTGREEN_EX
     BRIGHT_MAGENTA = Fore.LIGHTMAGENTA_EX
     BRIGHT_WHITE = Fore.LIGHTWHITE_EX
@@ -480,7 +481,7 @@ class OpenFi:
 
             asset = web3.to_checksum_address(asset_address)
 
-            contract_address = web3.to_checksum_address(self.POOL_PROVIDER_ADDRESS)
+            contract_address = web3.to_checksum_address(self.POOL_PROvider_ADDRESS)
             token_contract = web3.eth.contract(address=contract_address, abi=self.OPENFI_CONTRACT_ABI)
             user_reserve_data = token_contract.functions.getUserReserveData(asset, address).call()
 
