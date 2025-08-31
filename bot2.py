@@ -272,7 +272,7 @@ class OpenFi:
         now = datetime.now()
         print(f"{Colors.BRIGHT_GREEN}{Colors.BOLD}")
         print("  ╔══════════════════════════════════════╗")
-        print("  ║              B O T            ║")
+        print("  ║           Pharos OpenFi B O T            ║")
         print("  ║                                      ║")
         print(f"  ║     {Colors.YELLOW}{now.strftime('%H:%M:%S %d.%m.%Y')}{Colors.BRIGHT_GREEN}           ║")
         print("  ║                                      ║")
